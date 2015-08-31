@@ -9,7 +9,22 @@ type Function struct {
 	Docs       Docs
 	Parameters []Variable
 	Results    []Variable
-	Annotates  []Annotate
+}
+
+func extractVariableList(f *ast.FieldList, src string) []Variable {
+	var res []Variable
+	if f == nil {
+		return res
+	}
+	for i := range f.List {
+		n := f.List[i].Names
+		for in := range n {
+			p := variableFromExpr(nameFromIdent(n[in]), f.List[i].Type, src)
+			res = append(res, p)
+		}
+	}
+
+	return res
 }
 
 // NewFunction return a single function annotation
@@ -33,23 +48,8 @@ func NewFunction(f *ast.FuncDecl, src string) Function {
 		}
 	}
 
-	if f.Type.Results != nil {
-		for i := range f.Type.Results.List {
-			n := f.Type.Results.List[i].Names
-			for in := range n {
-				p := variableFromExpr(nameFromIdent(n[in]), f.Type.Results.List[i].Type, src)
-				res.Results = append(res.Results, p)
-			}
-		}
-	}
-
-	for i := range f.Type.Params.List {
-		n := f.Type.Params.List[i].Names
-		for in := range n {
-			p := variableFromExpr(nameFromIdent(n[in]), f.Type.Params.List[i].Type, src)
-			res.Parameters = append(res.Parameters, p)
-		}
-	}
+	res.Results = extractVariableList(f.Type.Results, src)
+	res.Parameters = extractVariableList(f.Type.Params, src)
 
 	return res
 }

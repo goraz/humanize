@@ -2,12 +2,17 @@
 package main
 
 // test
-import (
-	"io/ioutil"
-	"os"
-	//fuck this shit
+import
+
+//fuck this shit
+
+(
+	"encoding/json"
+	"fmt"
+
 	"github.com/fzerorubigd/annotate"
-	_ "github.com/lib/pq"
+	"github.com/fzerorubigd/onion"
+	"github.com/lib/pq"
 )
 
 var (
@@ -17,6 +22,8 @@ var (
 
 // the hes var
 var hes string
+
+var h pq.NullTime
 
 // Commet
 type example struct {
@@ -61,21 +68,29 @@ func (m *example) Test(x string) (y string) {
 	return
 }
 
+var o = onion.New()
+
+var j, _ = AnnotatedOne("", 1, 1, 1, example{}, nil, nil)
+
+var s func()
+
+var alal onion.Layer
+
+var js = 10
+
+var im complex64
+
+var pop = [...]int{1, 2, 6}
+
 // Test
 func main() {
-	r, err := os.Open("/home/f0rud/gospace/src/github.com/fzerorubigd/annotate/test/main.go")
-	if err != nil {
-		panic(err)
-	}
-	data, err := ioutil.ReadAll(r)
-	if err != nil {
-		panic(err)
-	}
-	_, _ = annotate.ParseFile(string(data))
+	p, _ := annotate.ParsePackage("/home/f0rud/gospace/src/github.com/fzerorubigd/annotate/test")
+	c, _ := json.MarshalIndent(p, "", "\t")
+	fmt.Print(string(c))
 }
 
 //AnnotatedOne is anotated one
 // @Test is test dude "one liner"
-func AnnotatedOne(p1 string, p2, p3 int, _ int, u example, i *example, j map[string]interface{}) string {
-	return ""
+func AnnotatedOne(p1 string, p2, p3 int, _ int, u example, i *example, j map[string]interface{}, ill ...int) (string, error) {
+	return "", nil
 }
