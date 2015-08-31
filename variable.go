@@ -6,7 +6,7 @@ import "go/ast"
 type Variable struct {
 	Name string
 	Type Type
-	Doc  string
+	Docs Docs
 }
 
 func variableFromExpr(name string, e ast.Expr, src string) Variable {
@@ -17,7 +17,7 @@ func variableFromExpr(name string, e ast.Expr, src string) Variable {
 }
 
 // NewVariable return an array of variables in the scope
-func NewVariable(v *ast.ValueSpec, src string) []Variable {
+func NewVariable(v *ast.ValueSpec, c *ast.CommentGroup, src string) []Variable {
 	var res []Variable
 	for i := range v.Names {
 		name := ""
@@ -25,6 +25,7 @@ func NewVariable(v *ast.ValueSpec, src string) []Variable {
 			name = v.Names[i].String()
 		}
 		n := variableFromExpr(name, v.Type, src)
+		n.Docs = docsFromNodeDoc(c, v.Doc)
 		res = append(res, n)
 	}
 

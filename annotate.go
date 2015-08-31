@@ -1,6 +1,7 @@
 package annotate
 
 import (
+	"encoding/json"
 	"fmt"
 	"go/ast"
 	"go/parser"
@@ -14,26 +15,23 @@ type Annotate struct {
 	Source     string
 }
 
-// FunctionAnnotate represent single function annotations
-type FunctionAnnotate struct {
-	Name        string
-	Receiver    string `json:",omitempty"`
-	Annotations []Annotate
-}
+// Docs is use to store documents
+type Docs []string
 
-// Package is the annotations in package and all its sub types
-type Package struct {
+// File is the annotations in package and all its sub types
+type File struct {
 	Name       string
 	Annotation []Annotate
-	Functions  []FunctionAnnotate
+	Docs       Docs
 }
 
 type walker struct {
 	src       string
-	functions []Function
-	imports   []Import
-	variables []Variable
-	types     []TypeName
+	File      File
+	Functions []Function
+	Imports   []Import
+	Variables []Variable
+	Types     []TypeName
 }
 
 func nameFromIdent(i *ast.Ident) (name string) {
@@ -43,30 +41,49 @@ func nameFromIdent(i *ast.Ident) (name string) {
 	return
 }
 
-func (fv *walker) Visit(node ast.Node) ast.Visitor {
-	switch t := node.(type) {
-	case *ast.FuncDecl:
-		fv.functions = append(fv.functions, NewFunction(t, fv.src))
-		return nil // Do noy go deeper
-	case *ast.GenDecl:
-		for i := range t.Specs {
-			switch decl := t.Specs[i].(type) {
-			case *ast.ImportSpec:
-				fv.imports = append(fv.imports, NewImport(decl))
-			case *ast.ValueSpec:
-				fv.variables = append(fv.variables, NewVariable(decl, fv.src)...)
-			case *ast.TypeSpec:
-				fv.types = append(fv.types, NewType(decl, fv.src))
+func docsFromNodeDoc(cgs ...*ast.CommentGroup) Docs {
+	var res Docs
+	for _, cg := range cgs {
+		if cg != nil {
+			for i := range cg.List {
+				res = append(res, cg.List[i].Text)
 			}
-
 		}
 	}
+	return res
+}
 
+func (fv *walker) Visit(node ast.Node) ast.Visitor {
+	if node != nil {
+		//fmt.Printf("\n%T\n", node)
+		switch t := node.(type) {
+		case *ast.File:
+			fv.File.Name = nameFromIdent(t.Name)
+			fv.File.Docs = docsFromNodeDoc(t.Doc)
+		case *ast.FuncDecl:
+			fv.Functions = append(fv.Functions, NewFunction(t, fv.src))
+			return nil // Do not go deeper
+		case *ast.GenDecl:
+			for i := range t.Specs {
+				switch decl := t.Specs[i].(type) {
+				case *ast.ImportSpec:
+					fv.Imports = append(fv.Imports, NewImport(decl))
+				case *ast.ValueSpec:
+					fv.Variables = append(fv.Variables, NewVariable(decl, t.Doc, fv.src)...)
+				case *ast.TypeSpec:
+					fv.Types = append(fv.Types, NewType(decl, t.Doc, fv.src))
+				}
+			}
+			return nil
+		default:
+			//fmt.Printf("\n%T\n", t)
+		}
+	}
 	return fv
 }
 
 // ParseFile try to parse a single file for its annotations
-func ParseFile(src string) (*Package, error) {
+func ParseFile(src string) (*File, error) {
 	fset := token.NewFileSet()
 
 	f, err := parser.ParseFile(fset, "", src, parser.ParseComments)
@@ -79,9 +96,9 @@ func ParseFile(src string) (*Package, error) {
 
 	ast.Walk(fv, f)
 
-	fmt.Printf("%+v", fv.types)
-	//	d, _ := json.MarshalIndent(fv.types, "", "\t")
-	//	fmt.Print(string(d))
+	//fmt.Printf("%+v", fv.types)
+	d, _ := json.MarshalIndent(fv, "", "\t")
+	fmt.Print(string(d))
 
 	return nil, nil
 	/*

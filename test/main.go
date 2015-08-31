@@ -1,5 +1,7 @@
+// package level documents
 package main
 
+// test
 import (
 	"io/ioutil"
 	"os"
@@ -13,23 +15,47 @@ var (
 	test, bogh /*doogh*/ string
 )
 
+// the hes var
+var hes string
+
 // Commet
 type example struct {
 	p int `tag:"str"`
 	q string
 }
 
+// On both
 type (
-	any  int
+	// On any
+	any int
+	// On Many
 	many int64
 )
 
+// On Pointer
 type pointer *struct{}
 
+// On x chan
 type x chan string
 
+// on zz
 type zz *example
 
+// on mappex
+type mapex map[string]interface{}
+
+// on slice
+type slice []pointer
+
+// on arr
+type arr [10]int
+
+// on testing
+type testing interface {
+	Test(string) string
+}
+
+// The test is the test
 func (m *example) Test(x string) (y string) {
 	y = x
 	return

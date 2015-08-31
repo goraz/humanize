@@ -6,7 +6,7 @@ import "go/ast"
 type Function struct {
 	Name       string
 	Reciever   *Variable // Nil means function
-	Doc        []string
+	Docs       Docs
 	Parameters []Variable
 	Results    []Variable
 	Annotates  []Annotate
@@ -17,11 +17,7 @@ func NewFunction(f *ast.FuncDecl, src string) Function {
 	res := Function{}
 
 	res.Name = f.Name.String()
-	if f.Doc != nil {
-		for i := range f.Doc.List {
-			res.Doc = append(res.Doc, f.Doc.List[i].Text)
-		}
-	}
+	res.Docs = docsFromNodeDoc(f.Doc)
 
 	if f.Recv != nil {
 		// Method reciever is only one parameter
