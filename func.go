@@ -1,6 +1,10 @@
 package annotate
 
-import "go/ast"
+import (
+	"go/ast"
+
+	"github.com/Sirupsen/logrus"
+)
 
 // Function is annotation data for a single function
 type Function struct {
@@ -18,8 +22,14 @@ func extractVariableList(f *ast.FieldList, src string) []Variable {
 	}
 	for i := range f.List {
 		n := f.List[i].Names
-		for in := range n {
-			p := variableFromExpr(nameFromIdent(n[in]), f.List[i].Type, src)
+		if n != nil {
+			for in := range n {
+				p := variableFromExpr(nameFromIdent(n[in]), f.List[i].Type, src)
+				res = append(res, p)
+			}
+		} else {
+			// Its probably without name part (ie return variable)
+			p := variableFromExpr("", f.List[i].Type, src)
 			res = append(res, p)
 		}
 	}
@@ -31,7 +41,7 @@ func extractVariableList(f *ast.FieldList, src string) []Variable {
 func NewFunction(f *ast.FuncDecl, src string) Function {
 	res := Function{}
 
-	res.Name = f.Name.String()
+	res.Name = nameFromIdent(f.Name)
 	res.Docs = docsFromNodeDoc(f.Doc)
 
 	if f.Recv != nil {
@@ -48,6 +58,9 @@ func NewFunction(f *ast.FuncDecl, src string) Function {
 		}
 	}
 
+	if res.Name == "AnnotatedOne" {
+		logrus.Warn(f.Type.Results)
+	}
 	res.Results = extractVariableList(f.Type.Results, src)
 	res.Parameters = extractVariableList(f.Type.Params, src)
 

@@ -65,7 +65,7 @@ type MapType struct {
 // InterfaceType is a single interface in system
 type InterfaceType struct {
 	srcBase
-	// TODO : need to implement this
+	Functions []Function
 }
 
 // SelectorType on my knowlege is a type from another package (I hope)
@@ -116,7 +116,7 @@ func getType(e ast.Expr, src string) Type {
 		// ident is the simplest one.
 		return IdentType{
 			srcBase{getSource(e, src)},
-			t.Name,
+			nameFromIdent(t),
 		}
 	case *ast.StarExpr:
 		return StarType{
@@ -182,9 +182,21 @@ func getType(e ast.Expr, src string) Type {
 		return res
 	case *ast.InterfaceType:
 		// TODO : interface may refer to itself I need more time to implement this
-		return InterfaceType{
+		iface := InterfaceType{
 			srcBase{getSource(e, src)},
+			nil,
 		}
+
+		for i := range t.Methods.List {
+			res := Function{}
+			// The method name is mandatory and always 1
+			//res.Name = nameFromIdent(t.Methods.List[i].Names)
+			fmt.Printf("%+v", t.Methods.List[i].Names)
+
+			res.Docs = docsFromNodeDoc(t.Methods.List[i].Doc)
+			iface.Functions = append(iface.Functions, res)
+		}
+		return iface
 	case *ast.ChanType:
 		return ChannelType{
 			srcBase:   srcBase{getSource(e, src)},

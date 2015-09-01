@@ -2,6 +2,7 @@ package annotate
 
 import (
 	"go/ast"
+	"path/filepath"
 	"strings"
 )
 
@@ -19,6 +20,7 @@ func NewImport(i *ast.ImportSpec) Import {
 		Path: strings.Trim(i.Path.Value, `"`),
 		Docs: docsFromNodeDoc(i.Doc),
 	}
+	_, res.Name = filepath.Split(res.Path)
 	if i.Name != nil {
 		res.Name = i.Name.String()
 	}

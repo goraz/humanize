@@ -6,9 +6,6 @@ import (
 	"go/token"
 )
 
-// Docs is use to store documents
-type Docs []string
-
 // File is the annotations in package and all its sub types
 type File struct {
 	FileName    string

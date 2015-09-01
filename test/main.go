@@ -2,11 +2,7 @@
 package main
 
 // test
-import
-
-//fuck this shit
-
-(
+import (
 	"encoding/json"
 	"fmt"
 
@@ -84,7 +80,10 @@ var pop = [...]int{1, 2, 6}
 
 // Test
 func main() {
-	p, _ := annotate.ParsePackage("/home/f0rud/gospace/src/github.com/fzerorubigd/annotate/test")
+	p, err := annotate.ParsePackage("github.com/fzerorubigd/annotate/test")
+	if err != nil {
+		panic(err)
+	}
 	c, _ := json.MarshalIndent(p, "", "\t")
 	fmt.Print(string(c))
 }

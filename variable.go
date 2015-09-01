@@ -11,14 +11,17 @@ type Variable struct {
 	Name string
 	Type Type
 	Docs Docs
+
+	caller *ast.CallExpr
+	indx   int
 }
 
 func variableFromValue(name string, indx int, e []ast.Expr, src string) Variable {
 	var t Type
+	var caller *ast.CallExpr
+	var ok bool
 	first := e[0]
-	if _, ok := first.(*ast.CallExpr); ok {
-		// TODO : then it is call expr and I cannot use it, and must parse another function for that
-	} else {
+	if caller, ok = first.(*ast.CallExpr); !ok {
 		switch data := e[indx].(type) {
 		case *ast.CompositeLit:
 			if data.Type != nil {
@@ -57,12 +60,15 @@ func variableFromValue(name string, indx int, e []ast.Expr, src string) Variable
 				}
 			}
 		default:
-			fmt.Printf("%T", data)
+			fmt.Printf("var value => %T", data)
+			fmt.Printf("%s", src[data.Pos()-1:data.End()-1])
 		}
 	}
 	return Variable{
-		Name: name,
-		Type: t,
+		Name:   name,
+		Type:   t,
+		caller: caller,
+		indx:   indx,
 	}
 }
 func variableFromExpr(name string, e ast.Expr, src string) Variable {
