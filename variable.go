@@ -1,7 +1,6 @@
 package annotate
 
 import (
-	"fmt"
 	"go/ast"
 	"go/token"
 )
@@ -24,13 +23,10 @@ func variableFromValue(name string, indx int, e []ast.Expr, src string) Variable
 	if caller, ok = first.(*ast.CallExpr); !ok {
 		switch data := e[indx].(type) {
 		case *ast.CompositeLit:
-			if data.Type != nil {
-				// the type is here
-				t = getType(data.Type, src)
-			} else {
-				// TODO : there is no type.
-				fmt.Printf("%T", data)
-			}
+			//if data.Type != nil {
+			// the type is here
+			t = getType(data.Type, src)
+			//}
 		case *ast.BasicLit:
 			switch data.Kind {
 			case token.INT:
@@ -59,9 +55,9 @@ func variableFromValue(name string, indx int, e []ast.Expr, src string) Variable
 					"string",
 				}
 			}
-		default:
-			fmt.Printf("var value => %T", data)
-			fmt.Printf("%s", src[data.Pos()-1:data.End()-1])
+			//default:
+			//fmt.Printf("var value => %T", data)
+			//fmt.Printf("%s", src[data.Pos()-1:data.End()-1])
 		}
 	}
 	return Variable{

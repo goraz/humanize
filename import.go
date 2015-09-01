@@ -14,11 +14,11 @@ type Import struct {
 }
 
 // NewImport extract a new import entry
-func NewImport(i *ast.ImportSpec) Import {
+func NewImport(i *ast.ImportSpec, c *ast.CommentGroup) Import {
 	res := Import{
 		Name: "",
 		Path: strings.Trim(i.Path.Value, `"`),
-		Docs: docsFromNodeDoc(i.Doc),
+		Docs: docsFromNodeDoc(c, i.Doc),
 	}
 	_, res.Name = filepath.Split(res.Path)
 	if i.Name != nil {

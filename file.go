@@ -55,7 +55,7 @@ func (fv *walker) Visit(node ast.Node) ast.Visitor {
 			for i := range t.Specs {
 				switch decl := t.Specs[i].(type) {
 				case *ast.ImportSpec:
-					fv.File.Imports = append(fv.File.Imports, NewImport(decl))
+					fv.File.Imports = append(fv.File.Imports, NewImport(decl, t.Doc))
 				case *ast.ValueSpec:
 					fv.File.Variables = append(fv.File.Variables, NewVariable(decl, t.Doc, fv.src)...)
 				case *ast.TypeSpec:

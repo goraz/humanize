@@ -58,8 +58,8 @@ func (p Package) FindFunction(t string) (*Function, error) {
 
 // FindImport try to find an import by its full import path
 func (p Package) FindImport(t string) (*Import, error) {
-	if t == "" || t == "_" {
-		return nil, fmt.Errorf("import with path _ or empty is invalid")
+	if t == "" || t == "_" || t == "." {
+		return nil, fmt.Errorf("import with path _/. or empty is invalid")
 	}
 	for i := range p {
 		for j := range p[i].Imports {
@@ -135,13 +135,42 @@ func lateBind(p Package) error {
 						return fmt.Errorf("%d result is available but want the %d", len(fn.Results), p[f].Variables[v].indx)
 					}
 					foreignTyp := fn.Results[p[f].Variables[v].indx].Type
-					if _, ok := foreignTyp.(SelectorType); ok {
-						// the type is foreign to that package too
+					star := false
+					if sType, ok := foreignTyp.(StarType); ok {
+						foreignTyp = sType.Target
+						star = true
 					}
-					p[f].Variables[v].Type = SelectorType{
-						srcBase: srcBase{""}, // TODO : source?
-						Package: imprt.Name,
-						Type:    foreignTyp,
+					switch ft := foreignTyp.(type) {
+					case IdentType:
+						// this is a simple hack. if the type is begin with
+						// upper case, then its type on that package, else its a global type
+						name := ft.Ident
+						c := name[0]
+						if c >= 'A' && c <= 'Z' {
+							if star {
+								foreignTyp = StarType{
+									ft.srcBase,
+									foreignTyp,
+								}
+							}
+							p[f].Variables[v].Type = SelectorType{
+								srcBase: srcBase{""}, // TODO : source?
+								Package: imprt.Name,
+								Type:    foreignTyp,
+							}
+						} else {
+							if star {
+								foreignTyp = StarType{
+									ft.srcBase,
+									foreignTyp,
+								}
+							}
+							p[f].Variables[v].Type = foreignTyp
+						}
+
+					default:
+						// the type is foreign to that package too
+						p[f].Variables[v].Type = ft
 					}
 				}
 			}
@@ -164,25 +193,34 @@ func ParsePackage(path string) (Package, error) {
 	err = filepath.Walk(
 		folder,
 		func(path string, f os.FileInfo, err error) error {
-			if !f.IsDir() {
-				if filepath.Ext(path) == ".go" {
-					r, err := os.Open(path)
-					if err != nil {
-						return err
-					}
-					data, err := ioutil.ReadAll(r)
-					if err != nil {
-						return err
-					}
-
-					f, err := ParseFile(string(data))
-					if err != nil {
-						return err
-					}
-					f.FileName = path
-					p = append(p, f)
-				}
+			if f.IsDir() {
+				return nil
 			}
+			// ignore test files (for now?)
+			_, filename := filepath.Split(path)
+			if len(filename) > 8 && filename[len(filename)-8:] == "_test.go" {
+				return nil
+			}
+			if filepath.Ext(path) != ".go" {
+				return nil
+			}
+			r, err := os.Open(path)
+			if err != nil {
+				return err
+			}
+			defer r.Close()
+
+			data, err := ioutil.ReadAll(r)
+			if err != nil {
+				return err
+			}
+
+			fl, err := ParseFile(string(data))
+			if err != nil {
+				return err
+			}
+			fl.FileName = path
+			p = append(p, fl)
 
 			return nil
 		},

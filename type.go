@@ -125,33 +125,33 @@ func getType(e ast.Expr, src string) Type {
 		}
 	case *ast.ArrayType:
 		slice := t.Len == nil
+		ellipsis := false
 		l := 0
 		if !slice {
 			var (
-				err error
-				ls  string
+				ls string
 			)
 			switch t.Len.(type) {
 
 			case *ast.BasicLit:
 				ls = t.Len.(*ast.BasicLit).Value
 			case *ast.Ellipsis:
-				// TODO : handle this
-				ls = "-1"
-			default:
-				panic("wtf")
+				ls = "0"
+				ellipsis = true
 			}
-			l, err = strconv.Atoi(ls)
-			if err != nil {
-				panic(err)
-			}
+			l, _ = strconv.Atoi(ls)
 		}
-		return ArrayType{
+		var at Type
+		at = ArrayType{
 			srcBase{getSource(e, src)},
 			t.Len == nil,
 			l,
 			getType(t.Elt, src),
 		}
+		if ellipsis {
+			at = EllipsisType{at.(ArrayType)}
+		}
+		return at
 	case *ast.MapType:
 		return MapType{
 			srcBase{getSource(e, src)},
@@ -214,15 +214,6 @@ func getType(e ast.Expr, src string) Type {
 			srcBase:    srcBase{getSource(e, src)},
 			Parameters: extractVariableList(t.Params, src),
 			Results:    extractVariableList(t.Results, src),
-		}
-	case *ast.Ellipsis:
-		return EllipsisType{
-			ArrayType{
-				srcBase{getSource(e, src)},
-				true,
-				0,
-				getType(t.Elt, src),
-			},
 		}
 	default:
 		fmt.Printf("\n%T\n%+v\n==>", t, t)

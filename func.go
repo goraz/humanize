@@ -1,10 +1,6 @@
 package annotate
 
-import (
-	"go/ast"
-
-	"github.com/Sirupsen/logrus"
-)
+import "go/ast"
 
 // Function is annotation data for a single function
 type Function struct {
@@ -47,20 +43,25 @@ func NewFunction(f *ast.FuncDecl, src string) Function {
 	if f.Recv != nil {
 		// Method reciever is only one parameter
 		for i := range f.Recv.List {
-			n := f.Recv.List[i].Names
-			for in := range n {
-				p := variableFromExpr(nameFromIdent(n[in]), f.Recv.List[i].Type, src)
-				if res.Reciever != nil {
-					panic("method with two receiever")
-				}
-				res.Reciever = &p
+			n := ""
+			if f.Recv.List[i].Names != nil {
+				n = nameFromIdent(f.Recv.List[i].Names[0])
 			}
+			p := variableFromExpr(n, f.Recv.List[i].Type, src)
+			res.Reciever = &p
 		}
 	}
 
-	if res.Name == "AnnotatedOne" {
-		logrus.Warn(f.Type.Results)
+	// Change the name of the function to reciver.func
+	if res.Reciever != nil {
+		tmp := res.Reciever.Type
+		if _, ok := tmp.(StarType); ok {
+			tmp = tmp.(StarType).Target
+		}
+
+		res.Name = tmp.(IdentType).Ident + "." + res.Name
 	}
+
 	res.Results = extractVariableList(f.Type.Results, src)
 	res.Parameters = extractVariableList(f.Type.Params, src)
 
