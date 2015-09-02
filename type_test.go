@@ -9,6 +9,10 @@ import (
 var typ = `
 package test
 
+import (
+   "github.com/fzerorubigd/onion"
+)
+
 type INT int
 
 type POINTER *float64
@@ -24,6 +28,14 @@ type MAP map[INT]string
 type CHAN chan int
 
 type FUNC func(int)string
+
+type SEL onion.Layer
+
+type STRUCT struct {
+   N SEL   ` + "`json:\"tag\"`" + `
+   M MAP
+   X int
+}
 
 `
 
@@ -96,5 +108,28 @@ func TestType(t *testing.T) {
 			So(t.Type.(FuncType).Results[0].Type.(IdentType).Ident, ShouldEqual, "string")
 		})
 
+		Convey("select type", func() {
+			t, err := p.FindType("SEL")
+			So(err, ShouldBeNil)
+			So(t.Type.(SelectorType).Package, ShouldEqual, "onion")
+			So(t.Type.(SelectorType).Type.(IdentType).Ident, ShouldEqual, "Layer")
+		})
+
+		Convey("struct type", func() {
+			t, err := p.FindType("STRUCT")
+			So(err, ShouldBeNil)
+			So(len(t.Type.(StructType).Fields), ShouldEqual, 3)
+			So(t.Type.(StructType).Fields[0].Name, ShouldEqual, "N")
+			So(t.Type.(StructType).Fields[0].Tags.Get("json"), ShouldEqual, "tag")
+			So(t.Type.(StructType).Fields[0].Type.(IdentType).Ident, ShouldEqual, "SEL")
+
+			So(t.Type.(StructType).Fields[1].Name, ShouldEqual, "M")
+			So(t.Type.(StructType).Fields[1].Tags, ShouldEqual, "")
+			So(t.Type.(StructType).Fields[1].Type.(IdentType).Ident, ShouldEqual, "MAP")
+
+			So(t.Type.(StructType).Fields[2].Name, ShouldEqual, "X")
+			So(t.Type.(StructType).Fields[2].Tags, ShouldEqual, "")
+			So(t.Type.(StructType).Fields[2].Type.(IdentType).Ident, ShouldEqual, "int")
+		})
 	})
 }

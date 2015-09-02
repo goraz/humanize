@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/fzerorubigd/annotate"
 	"github.com/fzerorubigd/onion"
+	"github.com/goraz/annotate"
 	"github.com/lib/pq"
 )
 
@@ -80,7 +80,7 @@ var pop = [...]int{1, 2, 6}
 
 // Test
 func main() {
-	p, err := annotate.ParsePackage("github.com/fzerorubigd/annotate/test")
+	p, err := annotate.ParsePackage("github.com/goraz/annotate/test")
 	if err != nil {
 		panic(err)
 	}

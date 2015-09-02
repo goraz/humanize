@@ -215,9 +215,6 @@ func getType(e ast.Expr, src string) Type {
 			Parameters: extractVariableList(t.Params, src),
 			Results:    extractVariableList(t.Results, src),
 		}
-	default:
-		fmt.Printf("\n%T\n%+v\n==>", t, t)
-		fmt.Print(src[t.Pos()-1 : t.End()-1])
 	}
 
 	return nil
