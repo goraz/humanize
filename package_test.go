@@ -37,14 +37,18 @@ var s = im.invalid_func()
 
 const invalidImport3 = `
 package invalid
-import "os"
+import (
+    os "github.com/goraz/annotate/fixture"
+)
 var s = os.invalid_func()
 
 `
 const invalidImport4 = `
 package invalid
-import "os"
-var s = os.Clearenv()
+import (
+     os "github.com/goraz/annotate/fixture"
+)
+var s = os.NoReturn()
 
 `
 const validImport5 = `

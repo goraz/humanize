@@ -16,3 +16,7 @@ func NewF() *f {
 func NewFile() *os.File {
 	return Y
 }
+
+func NoReturn() {
+
+}
