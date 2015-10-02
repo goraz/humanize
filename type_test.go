@@ -50,6 +50,8 @@ func TestType(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(t.Type.(IdentType).Ident, ShouldEqual, "int")
 			So(t.Name, ShouldEqual, "INT")
+
+			So(t.Type.GetSource(), ShouldEqual, "int")
 		})
 
 		Convey("pointer type", func() {

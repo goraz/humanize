@@ -1,11 +1,13 @@
 package annotate
 
 import (
-	"fmt"
 	"go/ast"
 	"reflect"
 	"strconv"
 )
+
+// NOTE : src was the base on my initial work, but its not accurate and may be
+// incorrect in some cases!
 
 // Type is for handling a type definition
 type Type interface {
@@ -107,7 +109,10 @@ func getSource(e ast.Expr, src string) string {
 	start := e.Pos() - 1
 	end := e.End() - 1
 	// grab it in source
-	return src[start:end]
+	if len(src) >= int(end) {
+		return src[start:end]
+	}
+	return ""
 }
 
 func getType(e ast.Expr, src string) Type {
@@ -186,16 +191,16 @@ func getType(e ast.Expr, src string) Type {
 			srcBase{getSource(e, src)},
 			nil,
 		}
+		/*
+			for i := range t.Methods.List {
+				res := Function{}
+				// The method name is mandatory and always 1
+				//res.Name = nameFromIdent(t.Methods.List[i].Names)
+				fmt.Printf("%+v", t.Methods.List[i].Names)
 
-		for i := range t.Methods.List {
-			res := Function{}
-			// The method name is mandatory and always 1
-			//res.Name = nameFromIdent(t.Methods.List[i].Names)
-			fmt.Printf("%+v", t.Methods.List[i].Names)
-
-			res.Docs = docsFromNodeDoc(t.Methods.List[i].Doc)
-			iface.Functions = append(iface.Functions, res)
-		}
+				res.Docs = docsFromNodeDoc(t.Methods.List[i].Doc)
+				iface.Functions = append(iface.Functions, res)
+			} */
 		return iface
 	case *ast.ChanType:
 		return ChannelType{

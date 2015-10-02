@@ -11,6 +11,18 @@ import (
 	"github.com/lib/pq"
 )
 
+const (
+	alpha = iota
+	beta
+)
+
+const (
+	x1 int = iota
+	y1
+)
+
+var maked = make([]int, 10)
+
 var (
 	// Booogh
 	test, bogh /*doogh*/ string

@@ -43,6 +43,19 @@ func (p Package) FindVariable(t string) (*Variable, error) {
 	return nil, fmt.Errorf("var with name %s not found", t)
 }
 
+// FindConstant try to find a package level variable
+func (p Package) FindConstant(t string) (*Constant, error) {
+	for i := range p {
+		for j := range p[i].Constants {
+			if p[i].Constants[j].Name == t {
+				return &p[i].Constants[j], nil
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("const with name %s not found", t)
+}
+
 // FindFunction try to find a package level variable
 func (p Package) FindFunction(t string) (*Function, error) {
 	for i := range p {
@@ -52,7 +65,6 @@ func (p Package) FindFunction(t string) (*Function, error) {
 			}
 		}
 	}
-
 	return nil, fmt.Errorf("func with name %s not found", t)
 }
 
@@ -98,7 +110,7 @@ func translateToFullPath(path string) (string, error) {
 	return test, nil
 }
 
-func lateBind(p Package) error {
+func lateBind(p Package) (res error) {
 	for f := range p {
 		// Try to find variable with null type and change them to real type
 		for v := range p[f].Variables {
@@ -106,15 +118,20 @@ func lateBind(p Package) error {
 				switch c := p[f].Variables[v].caller.Fun.(type) {
 				case *ast.Ident:
 					name := nameFromIdent(c)
-					fn, err := p.FindFunction(name)
-					if err != nil {
-						// Todo is this possible?
-						return err
+					// TODO : list all builtin functions?
+					if name == "make" {
+						p[f].Variables[v].Type = getType(p[f].Variables[v].caller.Args[0], "")
+					} else {
+						fn, err := p.FindFunction(name)
+						if err != nil {
+							return err
+						}
+
+						if len(fn.Results) <= p[f].Variables[v].indx {
+							return fmt.Errorf("%d result is available but want the %d", len(fn.Results), p[f].Variables[v].indx)
+						}
+						p[f].Variables[v].Type = fn.Results[p[f].Variables[v].indx].Type
 					}
-					if len(fn.Results) <= p[f].Variables[v].indx {
-						return fmt.Errorf("%d result is available but want the %d", len(fn.Results), p[f].Variables[v].indx)
-					}
-					p[f].Variables[v].Type = fn.Results[p[f].Variables[v].indx].Type
 				case *ast.SelectorExpr:
 					pkg := nameFromIdent(c.X.(*ast.Ident))
 					typ := nameFromIdent(c.Sel)

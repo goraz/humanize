@@ -83,7 +83,9 @@ func NewVariable(v *ast.ValueSpec, c *ast.CommentGroup, src string) []Variable {
 		if v.Type != nil {
 			n = variableFromExpr(name, v.Type, src)
 		} else {
-			n = variableFromValue(name, i, v.Values, src)
+			if len(v.Values) != 0 {
+				n = variableFromValue(name, i, v.Values, src)
+			}
 		}
 		n.Docs = docsFromNodeDoc(c, v.Doc)
 		res = append(res, n)

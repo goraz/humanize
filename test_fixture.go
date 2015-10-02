@@ -2,6 +2,6 @@
 
 package annotate
 
-//import "os"
+import "os"
 
-//var fl, err = os.Create("/some/path")
+var fl, err = os.Create("/some/path")
