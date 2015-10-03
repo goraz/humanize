@@ -4,11 +4,10 @@ import "go/ast"
 
 // Function is annotation data for a single function
 type Function struct {
-	Name       string
-	Reciever   *Variable // Nil means function
-	Docs       Docs
-	Parameters []Variable
-	Results    []Variable
+	Name     string
+	Reciever *Variable // Nil means normal function
+	Docs     Docs
+	Type     FuncType
 }
 
 func extractVariableList(f *ast.FieldList, src string) []Variable {
@@ -62,8 +61,11 @@ func NewFunction(f *ast.FuncDecl, src string) Function {
 		res.Name = tmp.(IdentType).Ident + "." + res.Name
 	}
 
-	res.Results = extractVariableList(f.Type.Results, src)
-	res.Parameters = extractVariableList(f.Type.Params, src)
+	res.Type = FuncType{
+		srcBase:    srcBase{""},
+		Parameters: extractVariableList(f.Type.Params, src),
+		Results:    extractVariableList(f.Type.Results, src),
+	}
 
 	return res
 }

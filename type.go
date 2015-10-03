@@ -1,9 +1,11 @@
 package annotate
 
 import (
+	"fmt"
 	"go/ast"
 	"reflect"
 	"strconv"
+	"strings"
 )
 
 // NOTE : src was the base on my initial work, but its not accurate and may be
@@ -13,6 +15,8 @@ import (
 type Type interface {
 	// GetSource return the source of definition of this type
 	GetSource() string
+	// GetName return the type name in the source
+	GetName() string
 }
 
 type srcBase struct {
@@ -42,6 +46,7 @@ type Field struct {
 type StructType struct {
 	srcBase
 	Fields []Field
+	Embed  []Type
 }
 
 // ArrayType is the base array
@@ -68,6 +73,7 @@ type MapType struct {
 type InterfaceType struct {
 	srcBase
 	Functions []Function
+	Embed     []Type // IdentType or SelectorType
 }
 
 // SelectorType on my knowlege is a type from another package (I hope)
@@ -103,6 +109,106 @@ type TypeName struct {
 // GetSource of the struct
 func (s srcBase) GetSource() string {
 	return s.src
+}
+
+// GetName the name of this type
+func (i IdentType) GetName() string {
+	return i.Ident
+}
+
+// GetName the name of this type
+func (i StarType) GetName() string {
+	return "*" + i.Target.GetName()
+}
+
+// GetName the name of this type
+func (i ArrayType) GetName() string {
+	if i.Slice {
+		return "[]" + i.Type.GetName()
+	}
+	return fmt.Sprintf("[%d]%s", i.Len, i.Type.GetName())
+}
+
+// GetName the name of this type
+func (i EllipsisType) GetName() string {
+	return fmt.Sprintf("[...]%s{}", i.Type.GetName())
+}
+
+// GetName the name of this type
+func (i StructType) GetName() string {
+	res := "struct {\n"
+	for e := range i.Embed {
+		res += "\t" + i.Embed[e].GetName() + "\n"
+	}
+
+	for f := range i.Fields {
+		tags := strings.Trim(string(i.Fields[f].Tags), "`")
+		if tags != "" {
+			tags = "`" + tags + "`"
+		}
+		res += fmt.Sprintf("\t%s %s %s\n", i.Fields[f].Name, i.Fields[f].Type.GetName(), tags)
+	}
+	return res + "}"
+}
+
+// GetName the name of this type
+func (i MapType) GetName() string {
+	return fmt.Sprintf("map[%s]%s", i.Key.GetName(), i.Value.GetName())
+}
+
+// GetName the name of this type
+func (i SelectorType) GetName() string {
+	return i.Package + "." + i.Type.GetName()
+}
+
+// GetName the name of this type
+func (i FuncType) GetName() string {
+	return "func " + i.getSign()
+}
+
+// GetSign the name of this type
+func (i FuncType) getSign() string {
+	var args, res []string
+	for a := range i.Parameters {
+		args = append(args, i.Parameters[a].Type.GetName())
+	}
+
+	for a := range i.Results {
+		res = append(res, i.Results[a].Type.GetName())
+	}
+
+	result := "(" + strings.Join(args, ",") + ")"
+	if len(res) > 1 {
+		result += "(" + strings.Join(res, ",") + ")"
+	} else {
+		result += strings.Join(res, ",")
+	}
+
+	return result
+}
+
+// GetName the name of this type
+func (i ChannelType) GetName() string {
+	switch i.Direction {
+	case 1:
+		return "<-chan " + i.Type.GetName()
+	case 2:
+		return "chan<- " + i.Type.GetName()
+	default:
+		return "chan " + i.Type.GetName()
+	}
+}
+
+// GetName the name of this type
+func (i InterfaceType) GetName() string {
+	res := "interface {\n"
+	for e := range i.Embed {
+		res += "\t" + i.Embed[e].GetName() + "\n"
+	}
+	for f := range i.Functions {
+		res += i.Functions[f].Type.GetName() + "\n"
+	}
+	return res + "}"
 }
 
 func getSource(e ast.Expr, src string) string {
@@ -163,24 +269,30 @@ func getType(e ast.Expr, src string) Type {
 			getType(t.Key, src),
 			getType(t.Value, src),
 		}
-	case *ast.StructType:
-		res := StructType{srcBase{getSource(e, src)}, nil}
-		for _, s := range t.Fields.List {
-			for i := range s.Names {
-				v := Variable{
-					Name: nameFromIdent(s.Names[i]),
-					Type: getType(s.Type, src),
-				}
 
-				f := Field{
-					v,
-					"",
+	case *ast.StructType:
+		res := StructType{srcBase{getSource(e, src)}, nil, nil}
+		for _, s := range t.Fields.List {
+			if s.Names != nil {
+				for i := range s.Names {
+					v := Variable{
+						Name: nameFromIdent(s.Names[i]),
+						Type: getType(s.Type, src),
+					}
+
+					f := Field{
+						v,
+						"",
+					}
+					if s.Tag != nil {
+						f.Tags = reflect.StructTag(s.Tag.Value)
+						f.Tags = f.Tags[1 : len(f.Tags)-1]
+					}
+					f.Docs = docsFromNodeDoc(s.Doc)
+					res.Fields = append(res.Fields, f)
 				}
-				if s.Tag != nil {
-					f.Tags = reflect.StructTag(s.Tag.Value)
-					f.Tags = f.Tags[1 : len(f.Tags)-1]
-				}
-				res.Fields = append(res.Fields, f)
+			} else {
+				res.Embed = append(res.Embed, getType(s.Type, src))
 			}
 		}
 
@@ -188,19 +300,25 @@ func getType(e ast.Expr, src string) Type {
 	case *ast.InterfaceType:
 		// TODO : interface may refer to itself I need more time to implement this
 		iface := InterfaceType{
-			srcBase{getSource(e, src)},
-			nil,
+			srcBase: srcBase{getSource(e, src)},
 		}
-		/*
-			for i := range t.Methods.List {
-				res := Function{}
-				// The method name is mandatory and always 1
-				//res.Name = nameFromIdent(t.Methods.List[i].Names)
-				fmt.Printf("%+v", t.Methods.List[i].Names)
+		for i := range t.Methods.List {
+			res := Function{}
+			// The method name is mandatory and always 1
+			if len(t.Methods.List[i].Names) > 0 {
+				res.Name = nameFromIdent(t.Methods.List[i].Names[0])
 
 				res.Docs = docsFromNodeDoc(t.Methods.List[i].Doc)
+				typ := getType(t.Methods.List[i].Type, src)
+				res.Type = typ.(FuncType)
 				iface.Functions = append(iface.Functions, res)
-			} */
+			} else {
+				// This is the embeded interface
+				embed := getType(t.Methods.List[i].Type, src)
+				iface.Embed = append(iface.Embed, embed)
+			}
+
+		}
 		return iface
 	case *ast.ChanType:
 		return ChannelType{

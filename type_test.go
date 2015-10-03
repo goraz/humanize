@@ -37,6 +37,18 @@ type STRUCT struct {
    X int
 }
 
+type EMBEDSTRUCT struct {
+   STRUCT
+}
+
+type INTERFACE interface {
+   Test(int, INT, FUNC) (FUNC, error)
+}
+
+type EMBEDINTERFACE interface {
+   INTERFACE
+}
+
 `
 
 func TestType(t *testing.T) {
@@ -133,5 +145,32 @@ func TestType(t *testing.T) {
 			So(t.Type.(StructType).Fields[2].Tags, ShouldEqual, "")
 			So(t.Type.(StructType).Fields[2].Type.(IdentType).Ident, ShouldEqual, "int")
 		})
+
+		Convey("embed struct type", func() {
+			t, err := p.FindType("EMBEDSTRUCT")
+			So(err, ShouldBeNil)
+			So(len(t.Type.(StructType).Fields), ShouldEqual, 0)
+			So(len(t.Type.(StructType).Embed), ShouldEqual, 1)
+			So(t.Type.(StructType).Embed[0].(IdentType).Ident, ShouldEqual, "STRUCT")
+		})
+
+		Convey("interface type", func() {
+			t, err := p.FindType("INTERFACE")
+			So(err, ShouldBeNil)
+			So(len(t.Type.(InterfaceType).Functions), ShouldEqual, 1)
+			So(t.Type.(InterfaceType).Functions[0].Name, ShouldEqual, "Test")
+
+			So(len(t.Type.(InterfaceType).Functions[0].Type.Parameters), ShouldEqual, 3)
+			So(len(t.Type.(InterfaceType).Functions[0].Type.Results), ShouldEqual, 2)
+		})
+
+		Convey("embed interface type", func() {
+			t, err := p.FindType("EMBEDINTERFACE")
+			So(err, ShouldBeNil)
+			So(len(t.Type.(InterfaceType).Functions), ShouldEqual, 0)
+			So(len(t.Type.(InterfaceType).Embed), ShouldEqual, 1)
+			So(t.Type.(InterfaceType).Embed[0].(IdentType).Ident, ShouldEqual, "INTERFACE")
+		})
+
 	})
 }

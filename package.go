@@ -127,10 +127,10 @@ func lateBind(p Package) (res error) {
 							return err
 						}
 
-						if len(fn.Results) <= p[f].Variables[v].indx {
-							return fmt.Errorf("%d result is available but want the %d", len(fn.Results), p[f].Variables[v].indx)
+						if len(fn.Type.Results) <= p[f].Variables[v].indx {
+							return fmt.Errorf("%d result is available but want the %d", len(fn.Type.Results), p[f].Variables[v].indx)
 						}
-						p[f].Variables[v].Type = fn.Results[p[f].Variables[v].indx].Type
+						p[f].Variables[v].Type = fn.Type.Results[p[f].Variables[v].indx].Type
 					}
 				case *ast.SelectorExpr:
 					pkg := nameFromIdent(c.X.(*ast.Ident))
@@ -148,10 +148,10 @@ func lateBind(p Package) (res error) {
 						return err
 					}
 
-					if len(fn.Results) <= p[f].Variables[v].indx {
-						return fmt.Errorf("%d result is available but want the %d", len(fn.Results), p[f].Variables[v].indx)
+					if len(fn.Type.Results) <= p[f].Variables[v].indx {
+						return fmt.Errorf("%d result is available but want the %d", len(fn.Type.Results), p[f].Variables[v].indx)
 					}
-					foreignTyp := fn.Results[p[f].Variables[v].indx].Type
+					foreignTyp := fn.Type.Results[p[f].Variables[v].indx].Type
 					star := false
 					if sType, ok := foreignTyp.(StarType); ok {
 						foreignTyp = sType.Target
