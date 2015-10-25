@@ -27,6 +27,10 @@ type MAP map[INT]string
 
 type CHAN chan int
 
+type CHAN2 chan<- int
+
+type CHAN3 <-chan int
+
 type FUNC func(int)string
 
 type SEL onion.Layer
@@ -62,8 +66,8 @@ func TestType(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(t.Type.(IdentType).Ident, ShouldEqual, "int")
 			So(t.Name, ShouldEqual, "INT")
-
-			So(t.Type.GetSource(), ShouldEqual, "int")
+			So(t.Type.GetName(), ShouldEqual, "int")
+			So(t.GetDefinition(), ShouldEqual, "INT int")
 		})
 
 		Convey("pointer type", func() {
@@ -71,6 +75,8 @@ func TestType(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(t.Type.(StarType).Target.(IdentType).Ident, ShouldEqual, "float64")
 			So(t.Name, ShouldEqual, "POINTER")
+			So(t.Type.GetName(), ShouldEqual, "*float64")
+			So(t.GetDefinition(), ShouldEqual, "POINTER *float64")
 		})
 
 		Convey("array type", func() {
@@ -80,6 +86,7 @@ func TestType(t *testing.T) {
 			So(t.Type.(ArrayType).Len, ShouldEqual, 10)
 			So(t.Type.(ArrayType).Slice, ShouldBeFalse)
 			So(t.Name, ShouldEqual, "ARRAY")
+			So(t.Type.GetName(), ShouldEqual, "[10]int")
 		})
 
 		Convey("slice type", func() {
@@ -89,6 +96,7 @@ func TestType(t *testing.T) {
 			So(t.Type.(ArrayType).Len, ShouldEqual, 0)
 			So(t.Type.(ArrayType).Slice, ShouldBeTrue)
 			So(t.Name, ShouldEqual, "SLICE")
+			So(t.Type.GetName(), ShouldEqual, "[]string")
 		})
 
 		Convey("Ellipsis type", func() {
@@ -97,6 +105,7 @@ func TestType(t *testing.T) {
 			So(t.Type.(EllipsisType).Type.(IdentType).Ident, ShouldEqual, "int")
 			So(t.Type.(EllipsisType).Len, ShouldEqual, 0)
 			So(t.Type.(EllipsisType).Slice, ShouldBeFalse)
+			So(t.Type.GetName(), ShouldEqual, "[...]int{}")
 		})
 
 		Convey("map type", func() {
@@ -104,6 +113,7 @@ func TestType(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(t.Type.(MapType).Key.(IdentType).Ident, ShouldEqual, "INT")
 			So(t.Type.(MapType).Value.(IdentType).Ident, ShouldEqual, "string")
+			So(t.Type.GetName(), ShouldEqual, "map[INT]string")
 		})
 
 		Convey("chan type", func() {
@@ -111,6 +121,20 @@ func TestType(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(t.Type.(ChannelType).Type.(IdentType).Ident, ShouldEqual, "int")
 			So(t.Type.(ChannelType).Direction, ShouldEqual, 3)
+			So(t.Type.GetName(), ShouldEqual, "chan int")
+
+			t, err = p.FindType("CHAN2")
+			So(err, ShouldBeNil)
+			So(t.Type.(ChannelType).Type.(IdentType).Ident, ShouldEqual, "int")
+			So(t.Type.(ChannelType).Direction, ShouldEqual, 1)
+			So(t.Type.GetName(), ShouldEqual, "chan<- int")
+
+			t, err = p.FindType("CHAN3")
+			So(err, ShouldBeNil)
+			So(t.Type.(ChannelType).Type.(IdentType).Ident, ShouldEqual, "int")
+			So(t.Type.(ChannelType).Direction, ShouldEqual, 2)
+			So(t.Type.GetName(), ShouldEqual, "<-chan int")
+
 		})
 
 		Convey("func type", func() {
@@ -120,6 +144,7 @@ func TestType(t *testing.T) {
 			So(t.Type.(FuncType).Parameters[0].Type.(IdentType).Ident, ShouldEqual, "int")
 			So(len(t.Type.(FuncType).Results), ShouldEqual, 1)
 			So(t.Type.(FuncType).Results[0].Type.(IdentType).Ident, ShouldEqual, "string")
+			So(t.Type.GetName(), ShouldEqual, "func (int) string")
 		})
 
 		Convey("select type", func() {
@@ -127,6 +152,7 @@ func TestType(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(t.Type.(SelectorType).Package, ShouldEqual, "onion")
 			So(t.Type.(SelectorType).Type.(IdentType).Ident, ShouldEqual, "Layer")
+			So(t.Type.GetName(), ShouldEqual, "onion.Layer")
 		})
 
 		Convey("struct type", func() {
@@ -144,6 +170,7 @@ func TestType(t *testing.T) {
 			So(t.Type.(StructType).Fields[2].Name, ShouldEqual, "X")
 			So(t.Type.(StructType).Fields[2].Tags, ShouldEqual, "")
 			So(t.Type.(StructType).Fields[2].Type.(IdentType).Ident, ShouldEqual, "int")
+			So(t.Type.GetName(), ShouldEqual, "struct {\n\tN SEL `json:\"tag\"`\n\tM MAP \n\tX int \n}")
 		})
 
 		Convey("embed struct type", func() {
@@ -152,6 +179,7 @@ func TestType(t *testing.T) {
 			So(len(t.Type.(StructType).Fields), ShouldEqual, 0)
 			So(len(t.Type.(StructType).Embed), ShouldEqual, 1)
 			So(t.Type.(StructType).Embed[0].(IdentType).Ident, ShouldEqual, "STRUCT")
+			So(t.Type.GetName(), ShouldEqual, "struct {\n\tSTRUCT\n}")
 		})
 
 		Convey("interface type", func() {
@@ -162,6 +190,9 @@ func TestType(t *testing.T) {
 
 			So(len(t.Type.(InterfaceType).Functions[0].Type.Parameters), ShouldEqual, 3)
 			So(len(t.Type.(InterfaceType).Functions[0].Type.Results), ShouldEqual, 2)
+			So(t.Type.GetName(), ShouldEqual, `interface {
+	func (int,INT,FUNC) (FUNC,error)
+}`)
 		})
 
 		Convey("embed interface type", func() {
@@ -170,6 +201,7 @@ func TestType(t *testing.T) {
 			So(len(t.Type.(InterfaceType).Functions), ShouldEqual, 0)
 			So(len(t.Type.(InterfaceType).Embed), ShouldEqual, 1)
 			So(t.Type.(InterfaceType).Embed[0].(IdentType).Ident, ShouldEqual, "INTERFACE")
+			So(t.Type.GetName(), ShouldEqual, "interface {\n\tINTERFACE\n}")
 		})
 
 	})

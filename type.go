@@ -13,8 +13,6 @@ import (
 
 // Type is for handling a type definition
 type Type interface {
-	// GetSource return the source of definition of this type
-	GetSource() string
 	// GetName return the type name in the source
 	GetName() string
 }
@@ -106,9 +104,9 @@ type TypeName struct {
 	Docs Docs
 }
 
-// GetSource of the struct
-func (s srcBase) GetSource() string {
-	return s.src
+// GetDefinition return the definition of this type
+func (tn TypeName) GetDefinition() string {
+	return tn.Name + " " + tn.Type.GetName()
 }
 
 // GetName the name of this type
@@ -179,9 +177,9 @@ func (i FuncType) getSign() string {
 
 	result := "(" + strings.Join(args, ",") + ")"
 	if len(res) > 1 {
-		result += "(" + strings.Join(res, ",") + ")"
+		result += " (" + strings.Join(res, ",") + ")"
 	} else {
-		result += strings.Join(res, ",")
+		result += " " + strings.Join(res, ",")
 	}
 
 	return result
@@ -191,9 +189,9 @@ func (i FuncType) getSign() string {
 func (i ChannelType) GetName() string {
 	switch i.Direction {
 	case 1:
-		return "<-chan " + i.Type.GetName()
-	case 2:
 		return "chan<- " + i.Type.GetName()
+	case 2:
+		return "<-chan " + i.Type.GetName()
 	default:
 		return "chan " + i.Type.GetName()
 	}
@@ -206,7 +204,7 @@ func (i InterfaceType) GetName() string {
 		res += "\t" + i.Embed[e].GetName() + "\n"
 	}
 	for f := range i.Functions {
-		res += i.Functions[f].Type.GetName() + "\n"
+		res += "\t" + i.Functions[f].Type.GetName() + "\n"
 	}
 	return res + "}"
 }
