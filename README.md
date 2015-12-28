@@ -1,11 +1,12 @@
-# Go annotation
+# Go humanize ast representation
 
-[![Build Status](https://travis-ci.org/goraz/annotate.svg)](https://travis-ci.org/goraz/annotate)
-[![Coverage Status](https://coveralls.io/repos/goraz/annotate/badge.svg?branch=master&service=github)](https://coveralls.io/github/goraz/annotate?branch=master)
-[![GoDoc](https://godoc.org/github.com/goraz/annotate?status.svg)](https://godoc.org/github.com/goraz/annotate)
+[![Build Status](https://travis-ci.org/goraz/annotate.svg)](https://travis-ci.org/goraz/humanize)
+[![Coverage Status](https://coveralls.io/repos/goraz/humanize/badge.svg?branch=master&service=github)](https://coveralls.io/github/goraz/humanize?branch=master)
+[![GoDoc](https://godoc.org/github.com/goraz/humanize?status.svg)](https://godoc.org/github.com/goraz/humanize)
 
 
 
-Generic, simple annotation library for go
+This is a simple "go source file into friendly structure" for prevent repeat my code over and over for create a simple 
+code generator. 
 
 

@@ -1,3 +1,5 @@
+// +build ignore
+
 // package level documents
 package main
 
@@ -7,7 +9,7 @@ import (
 	"fmt"
 
 	"github.com/fzerorubigd/onion"
-	"github.com/goraz/annotate"
+	"github.com/goraz/humanize"
 	"github.com/lib/pq"
 )
 
@@ -92,7 +94,7 @@ var pop = [...]int{1, 2, 6}
 
 // Test
 func main() {
-	p, err := annotate.ParsePackage("github.com/goraz/annotate/test")
+	p, err := humanize.ParsePackage("github.com/goraz/annotate/test")
 	if err != nil {
 		panic(err)
 	}

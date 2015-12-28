@@ -1,4 +1,4 @@
-package annotate
+package humanize
 
 import (
 	"reflect"

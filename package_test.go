@@ -1,4 +1,4 @@
-package annotate
+package humanize
 
 import (
 	"testing"
@@ -46,21 +46,21 @@ var s = os.invalid_func()
 const invalidImport4 = `
 package invalid
 import (
-     os "github.com/goraz/annotate/fixture"
+     os "github.com/goraz/humanize/fixture"
 )
 var s = os.NoReturn()
 
 `
 const validImport5 = `
 package invalid
-import "github.com/goraz/annotate/fixture"
+import "github.com/goraz/humanize/fixture"
 var s = fixture.NewF()
 var f = fixture.NewFile()
 `
 
 func TestCurrentPackage(t *testing.T) {
 	Convey("Current package", t, func() {
-		p, err := ParsePackage("github.com/goraz/annotate")
+		p, err := ParsePackage("github.com/goraz/humanize")
 		So(err, ShouldBeNil)
 		Convey("not found items", func() {
 			_, err := p.FindFunction("invalid_function")
@@ -78,7 +78,7 @@ func TestCurrentPackage(t *testing.T) {
 		Convey("translate path", func() {
 			_, err := translateToFullPath("invalid_path")
 			So(err, ShouldNotBeNil)
-			_, err = translateToFullPath("github.com/goraz/annotate/type.go")
+			_, err = translateToFullPath("github.com/goraz/humanize/type.go")
 			So(err, ShouldNotBeNil)
 
 		})
