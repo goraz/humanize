@@ -14,8 +14,8 @@ type Import struct {
 }
 
 // NewImport extract a new import entry
-func NewImport(i *ast.ImportSpec, c *ast.CommentGroup) Import {
-	res := Import{
+func NewImport(i *ast.ImportSpec, c *ast.CommentGroup) *Import {
+	res := &Import{
 		Name: "",
 		Path: strings.Trim(i.Path.Value, `"`),
 		Docs: docsFromNodeDoc(c, i.Doc),

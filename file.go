@@ -11,11 +11,11 @@ type File struct {
 	FileName    string
 	PackageName string
 	Docs        Docs
-	Functions   []Function
-	Imports     []Import
-	Variables   []Variable
-	Constants   []Constant
-	Types       []TypeName
+	Functions   []*Function
+	Imports     []*Import
+	Variables   []*Variable
+	Constants   []*Constant
+	Types       []*TypeName
 }
 
 type walker struct {

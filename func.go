@@ -7,11 +7,11 @@ type Function struct {
 	Name     string
 	Reciever *Variable // Nil means normal function
 	Docs     Docs
-	Type     FuncType
+	Type     *FuncType
 }
 
-func extractVariableList(f *ast.FieldList, src string) []Variable {
-	var res []Variable
+func extractVariableList(f *ast.FieldList, src string) []*Variable {
+	var res []*Variable
 	if f == nil {
 		return res
 	}
@@ -33,8 +33,8 @@ func extractVariableList(f *ast.FieldList, src string) []Variable {
 }
 
 // NewFunction return a single function annotation
-func NewFunction(f *ast.FuncDecl, src string) Function {
-	res := Function{}
+func NewFunction(f *ast.FuncDecl, src string) *Function {
+	res := &Function{}
 
 	res.Name = nameFromIdent(f.Name)
 	res.Docs = docsFromNodeDoc(f.Doc)
@@ -47,21 +47,21 @@ func NewFunction(f *ast.FuncDecl, src string) Function {
 				n = nameFromIdent(f.Recv.List[i].Names[0])
 			}
 			p := variableFromExpr(n, f.Recv.List[i].Type, src)
-			res.Reciever = &p
+			res.Reciever = p
 		}
 	}
 
 	// Change the name of the function to reciver.func
 	if res.Reciever != nil {
 		tmp := res.Reciever.Type
-		if _, ok := tmp.(StarType); ok {
-			tmp = tmp.(StarType).Target
+		if _, ok := tmp.(*StarType); ok {
+			tmp = tmp.(*StarType).Target
 		}
 
-		res.Name = tmp.(IdentType).Ident + "." + res.Name
+		res.Name = tmp.(*IdentType).Ident + "." + res.Name
 	}
 
-	res.Type = FuncType{
+	res.Type = &FuncType{
 		srcBase:    srcBase{""},
 		Parameters: extractVariableList(f.Type.Params, src),
 		Results:    extractVariableList(f.Type.Results, src),

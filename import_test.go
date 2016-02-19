@@ -26,8 +26,8 @@ func TestImport(t *testing.T) {
 	Convey("Import test ", t, func() {
 		f, err := ParseFile(imprt1)
 		So(err, ShouldBeNil)
-		var p Package
-		p = append(p, f)
+		var p = &Package{}
+		p.Files = append(p.Files, f)
 		Convey("Import testing", func() {
 			i, err := p.FindImport("testing")
 			So(err, ShouldBeNil)

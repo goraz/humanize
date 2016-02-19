@@ -29,13 +29,13 @@ func TestVariable(t *testing.T) {
 	Convey("Variable test", t, func() {
 		f, err := ParseFile(vr)
 		So(err, ShouldBeNil)
-		var p Package
-		p = append(p, f)
+		var p = &Package{}
+		p.Files = append(p.Files, f)
 		Convey("Normal define", func() {
 			i, err := p.FindVariable("i")
 			So(err, ShouldBeNil)
 			So(i.Name, ShouldEqual, "i")
-			So(i.Type.(IdentType).Ident, ShouldEqual, "int")
+			So(i.Type.(*IdentType).Ident, ShouldEqual, "int")
 		})
 
 		Convey("by value i1", func() {
@@ -43,7 +43,7 @@ func TestVariable(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(i.Name, ShouldEqual, "i1")
 			So(i.Name, ShouldEqual, "i1")
-			So(i.Type.(IdentType).Ident, ShouldEqual, "int")
+			So(i.Type.(*IdentType).Ident, ShouldEqual, "int")
 		})
 
 		Convey("by value i2", func() {
@@ -51,7 +51,7 @@ func TestVariable(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(i.Name, ShouldEqual, "i2")
 			So(i.Name, ShouldEqual, "i2")
-			So(i.Type.(IdentType).Ident, ShouldEqual, "float64")
+			So(i.Type.(*IdentType).Ident, ShouldEqual, "float64")
 		})
 
 		Convey("by value i3", func() {
@@ -59,7 +59,7 @@ func TestVariable(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(i.Name, ShouldEqual, "i3")
 			So(i.Name, ShouldEqual, "i3")
-			So(i.Type.(IdentType).Ident, ShouldEqual, "string")
+			So(i.Type.(*IdentType).Ident, ShouldEqual, "string")
 		})
 
 		Convey("by value i4", func() {
@@ -67,7 +67,7 @@ func TestVariable(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(i.Name, ShouldEqual, "i4")
 			So(i.Name, ShouldEqual, "i4")
-			So(i.Type.(IdentType).Ident, ShouldEqual, "char")
+			So(i.Type.(*IdentType).Ident, ShouldEqual, "char")
 		})
 
 		Convey("by value i5", func() {
@@ -75,7 +75,7 @@ func TestVariable(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(i.Name, ShouldEqual, "i5")
 			So(i.Name, ShouldEqual, "i5")
-			So(i.Type.(ArrayType).Type.(IdentType).Ident, ShouldEqual, "int")
+			So(i.Type.(*ArrayType).Type.(*IdentType).Ident, ShouldEqual, "int")
 		})
 
 		Convey("by value i6", func() {
@@ -83,7 +83,7 @@ func TestVariable(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(i.Name, ShouldEqual, "i6")
 			So(i.Name, ShouldEqual, "i6")
-			So(i.Type.(IdentType).Ident, ShouldEqual, "complex64")
+			So(i.Type.(*IdentType).Ident, ShouldEqual, "complex64")
 		})
 	})
 }

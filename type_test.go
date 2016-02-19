@@ -42,7 +42,7 @@ type STRUCT struct {
 }
 
 type EMBEDSTRUCT struct {
-   STRUCT
+   STRUCT  ` + "`json:\"tag\"`" + `
 }
 
 type INTERFACE interface {
@@ -59,138 +59,139 @@ func TestType(t *testing.T) {
 	Convey("Variable test", t, func() {
 		f, err := ParseFile(typ)
 		So(err, ShouldBeNil)
-		var p Package
-		p = append(p, f)
+		var p = &Package{}
+		p.Files = append(p.Files, f)
 		Convey("ident type", func() {
 			t, err := p.FindType("INT")
 			So(err, ShouldBeNil)
-			So(t.Type.(IdentType).Ident, ShouldEqual, "int")
+			So(t.Type.(*IdentType).Ident, ShouldEqual, "int")
 			So(t.Name, ShouldEqual, "INT")
-			So(t.Type.GetName(), ShouldEqual, "int")
+			So(t.Type.GetDefinition(), ShouldEqual, "int")
 			So(t.GetDefinition(), ShouldEqual, "INT int")
 		})
 
 		Convey("pointer type", func() {
 			t, err := p.FindType("POINTER")
 			So(err, ShouldBeNil)
-			So(t.Type.(StarType).Target.(IdentType).Ident, ShouldEqual, "float64")
+			So(t.Type.(*StarType).Target.(*IdentType).Ident, ShouldEqual, "float64")
 			So(t.Name, ShouldEqual, "POINTER")
-			So(t.Type.GetName(), ShouldEqual, "*float64")
+			So(t.Type.GetDefinition(), ShouldEqual, "*float64")
 			So(t.GetDefinition(), ShouldEqual, "POINTER *float64")
 		})
 
 		Convey("array type", func() {
 			t, err := p.FindType("ARRAY")
 			So(err, ShouldBeNil)
-			So(t.Type.(ArrayType).Type.(IdentType).Ident, ShouldEqual, "int")
-			So(t.Type.(ArrayType).Len, ShouldEqual, 10)
-			So(t.Type.(ArrayType).Slice, ShouldBeFalse)
+			So(t.Type.(*ArrayType).Type.(*IdentType).Ident, ShouldEqual, "int")
+			So(t.Type.(*ArrayType).Len, ShouldEqual, 10)
+			So(t.Type.(*ArrayType).Slice, ShouldBeFalse)
 			So(t.Name, ShouldEqual, "ARRAY")
-			So(t.Type.GetName(), ShouldEqual, "[10]int")
+			So(t.Type.GetDefinition(), ShouldEqual, "[10]int")
 		})
 
 		Convey("slice type", func() {
 			t, err := p.FindType("SLICE")
 			So(err, ShouldBeNil)
-			So(t.Type.(ArrayType).Type.(IdentType).Ident, ShouldEqual, "string")
-			So(t.Type.(ArrayType).Len, ShouldEqual, 0)
-			So(t.Type.(ArrayType).Slice, ShouldBeTrue)
+			So(t.Type.(*ArrayType).Type.(*IdentType).Ident, ShouldEqual, "string")
+			So(t.Type.(*ArrayType).Len, ShouldEqual, 0)
+			So(t.Type.(*ArrayType).Slice, ShouldBeTrue)
 			So(t.Name, ShouldEqual, "SLICE")
-			So(t.Type.GetName(), ShouldEqual, "[]string")
+			So(t.Type.GetDefinition(), ShouldEqual, "[]string")
 		})
 
 		Convey("Ellipsis type", func() {
 			t, err := p.FindVariable("ELLIPSIS")
 			So(err, ShouldBeNil)
-			So(t.Type.(EllipsisType).Type.(IdentType).Ident, ShouldEqual, "int")
-			So(t.Type.(EllipsisType).Len, ShouldEqual, 0)
-			So(t.Type.(EllipsisType).Slice, ShouldBeFalse)
-			So(t.Type.GetName(), ShouldEqual, "[...]int{}")
+			So(t.Type.(*EllipsisType).Type.(*IdentType).Ident, ShouldEqual, "int")
+			So(t.Type.(*EllipsisType).Len, ShouldEqual, 0)
+			So(t.Type.(*EllipsisType).Slice, ShouldBeFalse)
+			So(t.Type.GetDefinition(), ShouldEqual, "[...]int{}")
 		})
 
 		Convey("map type", func() {
 			t, err := p.FindType("MAP")
 			So(err, ShouldBeNil)
-			So(t.Type.(MapType).Key.(IdentType).Ident, ShouldEqual, "INT")
-			So(t.Type.(MapType).Value.(IdentType).Ident, ShouldEqual, "string")
-			So(t.Type.GetName(), ShouldEqual, "map[INT]string")
+			So(t.Type.(*MapType).Key.(*IdentType).Ident, ShouldEqual, "INT")
+			So(t.Type.(*MapType).Value.(*IdentType).Ident, ShouldEqual, "string")
+			So(t.Type.GetDefinition(), ShouldEqual, "map[INT]string")
 		})
 
 		Convey("chan type", func() {
 			t, err := p.FindType("CHAN")
 			So(err, ShouldBeNil)
-			So(t.Type.(ChannelType).Type.(IdentType).Ident, ShouldEqual, "int")
-			So(t.Type.(ChannelType).Direction, ShouldEqual, 3)
-			So(t.Type.GetName(), ShouldEqual, "chan int")
+			So(t.Type.(*ChannelType).Type.(*IdentType).Ident, ShouldEqual, "int")
+			So(t.Type.(*ChannelType).Direction, ShouldEqual, 3)
+			So(t.Type.GetDefinition(), ShouldEqual, "chan int")
 
 			t, err = p.FindType("CHAN2")
 			So(err, ShouldBeNil)
-			So(t.Type.(ChannelType).Type.(IdentType).Ident, ShouldEqual, "int")
-			So(t.Type.(ChannelType).Direction, ShouldEqual, 1)
-			So(t.Type.GetName(), ShouldEqual, "chan<- int")
+			So(t.Type.(*ChannelType).Type.(*IdentType).Ident, ShouldEqual, "int")
+			So(t.Type.(*ChannelType).Direction, ShouldEqual, 1)
+			So(t.Type.GetDefinition(), ShouldEqual, "chan<- int")
 
 			t, err = p.FindType("CHAN3")
 			So(err, ShouldBeNil)
-			So(t.Type.(ChannelType).Type.(IdentType).Ident, ShouldEqual, "int")
-			So(t.Type.(ChannelType).Direction, ShouldEqual, 2)
-			So(t.Type.GetName(), ShouldEqual, "<-chan int")
+			So(t.Type.(*ChannelType).Type.(*IdentType).Ident, ShouldEqual, "int")
+			So(t.Type.(*ChannelType).Direction, ShouldEqual, 2)
+			So(t.Type.GetDefinition(), ShouldEqual, "<-chan int")
 
 		})
 
 		Convey("func type", func() {
 			t, err := p.FindType("FUNC")
 			So(err, ShouldBeNil)
-			So(len(t.Type.(FuncType).Parameters), ShouldEqual, 1)
-			So(t.Type.(FuncType).Parameters[0].Type.(IdentType).Ident, ShouldEqual, "int")
-			So(len(t.Type.(FuncType).Results), ShouldEqual, 1)
-			So(t.Type.(FuncType).Results[0].Type.(IdentType).Ident, ShouldEqual, "string")
-			So(t.Type.GetName(), ShouldEqual, "func (int) string")
+			So(len(t.Type.(*FuncType).Parameters), ShouldEqual, 1)
+			So(t.Type.(*FuncType).Parameters[0].Type.(*IdentType).Ident, ShouldEqual, "int")
+			So(len(t.Type.(*FuncType).Results), ShouldEqual, 1)
+			So(t.Type.(*FuncType).Results[0].Type.(*IdentType).Ident, ShouldEqual, "string")
+			So(t.Type.GetDefinition(), ShouldEqual, "func (int) string")
 		})
 
 		Convey("select type", func() {
 			t, err := p.FindType("SEL")
 			So(err, ShouldBeNil)
-			So(t.Type.(SelectorType).Package, ShouldEqual, "onion")
-			So(t.Type.(SelectorType).Type.(IdentType).Ident, ShouldEqual, "Layer")
-			So(t.Type.GetName(), ShouldEqual, "onion.Layer")
+			So(t.Type.(*SelectorType).Package, ShouldEqual, "onion")
+			So(t.Type.(*SelectorType).Type.(*IdentType).Ident, ShouldEqual, "Layer")
+			So(t.Type.GetDefinition(), ShouldEqual, "onion.Layer")
 		})
 
 		Convey("struct type", func() {
 			t, err := p.FindType("STRUCT")
 			So(err, ShouldBeNil)
-			So(len(t.Type.(StructType).Fields), ShouldEqual, 3)
-			So(t.Type.(StructType).Fields[0].Name, ShouldEqual, "N")
-			So(t.Type.(StructType).Fields[0].Tags.Get("json"), ShouldEqual, "tag")
-			So(t.Type.(StructType).Fields[0].Type.(IdentType).Ident, ShouldEqual, "SEL")
+			So(len(t.Type.(*StructType).Fields), ShouldEqual, 3)
+			So(t.Type.(*StructType).Fields[0].Name, ShouldEqual, "N")
+			So(t.Type.(*StructType).Fields[0].Tags.Get("json"), ShouldEqual, "tag")
+			So(t.Type.(*StructType).Fields[0].Type.(*IdentType).Ident, ShouldEqual, "SEL")
 
-			So(t.Type.(StructType).Fields[1].Name, ShouldEqual, "M")
-			So(t.Type.(StructType).Fields[1].Tags, ShouldEqual, "")
-			So(t.Type.(StructType).Fields[1].Type.(IdentType).Ident, ShouldEqual, "MAP")
+			So(t.Type.(*StructType).Fields[1].Name, ShouldEqual, "M")
+			So(t.Type.(*StructType).Fields[1].Tags, ShouldEqual, "")
+			So(t.Type.(*StructType).Fields[1].Type.(*IdentType).Ident, ShouldEqual, "MAP")
 
-			So(t.Type.(StructType).Fields[2].Name, ShouldEqual, "X")
-			So(t.Type.(StructType).Fields[2].Tags, ShouldEqual, "")
-			So(t.Type.(StructType).Fields[2].Type.(IdentType).Ident, ShouldEqual, "int")
-			So(t.Type.GetName(), ShouldEqual, "struct {\n\tN SEL `json:\"tag\"`\n\tM MAP \n\tX int \n}")
+			So(t.Type.(*StructType).Fields[2].Name, ShouldEqual, "X")
+			So(t.Type.(*StructType).Fields[2].Tags, ShouldEqual, "")
+			So(t.Type.(*StructType).Fields[2].Type.(*IdentType).Ident, ShouldEqual, "int")
+			So(t.Type.GetDefinition(), ShouldEqual, "struct {\n\tN SEL `json:\"tag\"`\n\tM MAP \n\tX int \n}")
 		})
 
 		Convey("embed struct type", func() {
 			t, err := p.FindType("EMBEDSTRUCT")
 			So(err, ShouldBeNil)
-			So(len(t.Type.(StructType).Fields), ShouldEqual, 0)
-			So(len(t.Type.(StructType).Embed), ShouldEqual, 1)
-			So(t.Type.(StructType).Embed[0].(IdentType).Ident, ShouldEqual, "STRUCT")
-			So(t.Type.GetName(), ShouldEqual, "struct {\n\tSTRUCT\n}")
+			So(len(t.Type.(*StructType).Fields), ShouldEqual, 0)
+			So(len(t.Type.(*StructType).Embeds), ShouldEqual, 1)
+			So(t.Type.(*StructType).Embeds[0].Type.(*IdentType).Ident, ShouldEqual, "STRUCT")
+			So(t.Type.(*StructType).Embeds[0].Tags.Get("json"), ShouldEqual, "tag")
+			So(t.Type.GetDefinition(), ShouldEqual, "struct {\n\tSTRUCT\n}")
 		})
 
 		Convey("interface type", func() {
 			t, err := p.FindType("INTERFACE")
 			So(err, ShouldBeNil)
-			So(len(t.Type.(InterfaceType).Functions), ShouldEqual, 1)
-			So(t.Type.(InterfaceType).Functions[0].Name, ShouldEqual, "Test")
+			So(len(t.Type.(*InterfaceType).Functions), ShouldEqual, 1)
+			So(t.Type.(*InterfaceType).Functions[0].Name, ShouldEqual, "Test")
 
-			So(len(t.Type.(InterfaceType).Functions[0].Type.Parameters), ShouldEqual, 3)
-			So(len(t.Type.(InterfaceType).Functions[0].Type.Results), ShouldEqual, 2)
-			So(t.Type.GetName(), ShouldEqual, `interface {
+			So(len(t.Type.(*InterfaceType).Functions[0].Type.Parameters), ShouldEqual, 3)
+			So(len(t.Type.(*InterfaceType).Functions[0].Type.Results), ShouldEqual, 2)
+			So(t.Type.GetDefinition(), ShouldEqual, `interface {
 	func (int,INT,FUNC) (FUNC,error)
 }`)
 		})
@@ -198,10 +199,10 @@ func TestType(t *testing.T) {
 		Convey("embed interface type", func() {
 			t, err := p.FindType("EMBEDINTERFACE")
 			So(err, ShouldBeNil)
-			So(len(t.Type.(InterfaceType).Functions), ShouldEqual, 0)
-			So(len(t.Type.(InterfaceType).Embed), ShouldEqual, 1)
-			So(t.Type.(InterfaceType).Embed[0].(IdentType).Ident, ShouldEqual, "INTERFACE")
-			So(t.Type.GetName(), ShouldEqual, "interface {\n\tINTERFACE\n}")
+			So(len(t.Type.(*InterfaceType).Functions), ShouldEqual, 0)
+			So(len(t.Type.(*InterfaceType).Embed), ShouldEqual, 1)
+			So(t.Type.(*InterfaceType).Embed[0].(*IdentType).Ident, ShouldEqual, "INTERFACE")
+			So(t.Type.GetDefinition(), ShouldEqual, "interface {\n\tINTERFACE\n}")
 		})
 
 	})

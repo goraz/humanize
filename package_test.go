@@ -63,6 +63,8 @@ func TestCurrentPackage(t *testing.T) {
 		p, err := ParsePackage("github.com/goraz/humanize")
 		So(err, ShouldBeNil)
 		Convey("not found items", func() {
+			So(p.Path, ShouldEqual, "github.com/goraz/humanize")
+			So(p.Name, ShouldEqual, "humanize")
 			_, err := p.FindFunction("invalid_function")
 			So(err, ShouldNotBeNil)
 			_, err = p.FindImport("invalid_import")
@@ -87,8 +89,8 @@ func TestCurrentPackage(t *testing.T) {
 			Convey("return unexported", func() {
 				f, err := ParseFile(validImport5)
 				So(err, ShouldBeNil)
-				var p Package
-				p = append(p, f)
+				var p = &Package{}
+				p.Files = append(p.Files, f)
 
 				err = lateBind(p)
 				So(err, ShouldBeNil)
@@ -106,8 +108,8 @@ func TestErrors(t *testing.T) {
 	Convey("invalid file", t, func() {
 		f, err := ParseFile(invalidFunc)
 		So(err, ShouldBeNil)
-		var p Package
-		p = append(p, f)
+		var p = &Package{}
+		p.Files = append(p.Files, f)
 
 		err = lateBind(p)
 		So(err, ShouldNotBeNil)
@@ -116,8 +118,8 @@ func TestErrors(t *testing.T) {
 	Convey("invalid file 2", t, func() {
 		f, err := ParseFile(invalidFunc2)
 		So(err, ShouldBeNil)
-		var p Package
-		p = append(p, f)
+		var p = &Package{}
+		p.Files = append(p.Files, f)
 
 		err = lateBind(p)
 		So(err, ShouldNotBeNil)
@@ -126,8 +128,8 @@ func TestErrors(t *testing.T) {
 	Convey("invalid import", t, func() {
 		f, err := ParseFile(invalidImport)
 		So(err, ShouldBeNil)
-		var p Package
-		p = append(p, f)
+		var p = &Package{}
+		p.Files = append(p.Files, f)
 
 		err = lateBind(p)
 		So(err, ShouldNotBeNil)
@@ -136,8 +138,8 @@ func TestErrors(t *testing.T) {
 	Convey("invalid import 2", t, func() {
 		f, err := ParseFile(invalidImport2)
 		So(err, ShouldBeNil)
-		var p Package
-		p = append(p, f)
+		var p = &Package{}
+		p.Files = append(p.Files, f)
 
 		err = lateBind(p)
 		So(err, ShouldNotBeNil)
@@ -146,8 +148,8 @@ func TestErrors(t *testing.T) {
 	Convey("invalid import 3", t, func() {
 		f, err := ParseFile(invalidImport3)
 		So(err, ShouldBeNil)
-		var p Package
-		p = append(p, f)
+		var p = &Package{}
+		p.Files = append(p.Files, f)
 
 		err = lateBind(p)
 		So(err, ShouldNotBeNil)
@@ -156,8 +158,8 @@ func TestErrors(t *testing.T) {
 	Convey("invalid import 4", t, func() {
 		f, err := ParseFile(invalidImport4)
 		So(err, ShouldBeNil)
-		var p Package
-		p = append(p, f)
+		var p = &Package{}
+		p.Files = append(p.Files, f)
 
 		err = lateBind(p)
 		So(err, ShouldNotBeNil)

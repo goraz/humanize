@@ -19,12 +19,12 @@ type Constant struct {
 	indx   int
 }
 
-func constantFromValue(name string, indx int, e []ast.Expr, src string) Constant {
+func constantFromValue(name string, indx int, e []ast.Expr, src string) *Constant {
 	var t Type
 	var caller *ast.CallExpr
 	var ok bool
 	if len(e) == 0 {
-		return Constant{
+		return &Constant{
 			Name: name,
 		}
 	}
@@ -34,33 +34,33 @@ func constantFromValue(name string, indx int, e []ast.Expr, src string) Constant
 		case *ast.BasicLit:
 			switch data.Kind {
 			case token.INT:
-				t = IdentType{
+				t = &IdentType{
 					srcBase{getSource(data, src)},
 					"int",
 				}
 			case token.FLOAT:
-				t = IdentType{
+				t = &IdentType{
 					srcBase{getSource(data, src)},
 					"float64",
 				}
 			case token.IMAG:
-				t = IdentType{
+				t = &IdentType{
 					srcBase{getSource(data, src)},
 					"complex64",
 				}
 			case token.CHAR:
-				t = IdentType{
+				t = &IdentType{
 					srcBase{getSource(data, src)},
 					"char",
 				}
 			case token.STRING:
-				t = IdentType{
+				t = &IdentType{
 					srcBase{getSource(data, src)},
 					"string",
 				}
 			}
 		case *ast.Ident:
-			t = IdentType{
+			t = &IdentType{
 				srcBase{getSource(data, src)},
 				nameFromIdent(data),
 			}
@@ -69,27 +69,26 @@ func constantFromValue(name string, indx int, e []ast.Expr, src string) Constant
 			//			fmt.Printf("\n%s", src[data.Pos()-1:data.End()-1])
 		}
 	}
-	return Constant{
+	return &Constant{
 		Name:   name,
 		Type:   t,
 		caller: caller,
 		indx:   indx,
 	}
 }
-func constantFromExpr(name string, e ast.Expr, src string) Constant {
-	return Constant{
+func constantFromExpr(name string, e ast.Expr, src string) *Constant {
+	return &Constant{
 		Name: name,
 		Type: getType(e, src),
 	}
 }
 
 // NewConstant return an array of constant in the scope
-func NewConstant(v *ast.ValueSpec, c *ast.CommentGroup, src string) []Constant {
-	var res []Constant
+func NewConstant(v *ast.ValueSpec, c *ast.CommentGroup, src string) []*Constant {
+	var res []*Constant
 	for i := range v.Names {
 		name := nameFromIdent(v.Names[i])
-		var n Constant
-		n.Name = name
+		var n *Constant
 		if v.Type != nil {
 			n = constantFromExpr(name, v.Type, src)
 		} else {
@@ -100,6 +99,7 @@ func NewConstant(v *ast.ValueSpec, c *ast.CommentGroup, src string) []Constant {
 		} else {
 			lastConst = n.Type
 		}
+		n.Name = name
 		n.Docs = docsFromNodeDoc(c, v.Doc)
 		res = append(res, n)
 	}

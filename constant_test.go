@@ -32,31 +32,31 @@ func TestConstant(t *testing.T) {
 	Convey("constant test", t, func() {
 		f, err := ParseFile(cr)
 		So(err, ShouldBeNil)
-		var p Package
-		p = append(p, f)
+		var p = &Package{}
+		p.Files = append(p.Files, f)
 		Convey("Normal define", func() {
 			i, err := p.FindConstant("i")
 			So(err, ShouldBeNil)
 			So(i.Name, ShouldEqual, "i")
-			So(i.Type.(IdentType).Ident, ShouldEqual, "iota")
+			So(i.Type.(*IdentType).Ident, ShouldEqual, "iota")
 
 			i, err = p.FindConstant("j")
 			So(err, ShouldBeNil)
 			So(i.Name, ShouldEqual, "j")
-			So(i.Type.(IdentType).Ident, ShouldEqual, "iota")
+			So(i.Type.(*IdentType).Ident, ShouldEqual, "iota")
 
 		})
 		Convey("by value s", func() {
 			i, err := p.FindConstant("s")
 			So(err, ShouldBeNil)
 			So(i.Name, ShouldEqual, "s")
-			So(i.Type.(IdentType).Ident, ShouldEqual, "float64")
+			So(i.Type.(*IdentType).Ident, ShouldEqual, "float64")
 		})
 		Convey("by value i1", func() {
 			i, err := p.FindConstant("i1")
 			So(err, ShouldBeNil)
 			So(i.Name, ShouldEqual, "i1")
-			So(i.Type.(IdentType).Ident, ShouldEqual, "int")
+			So(i.Type.(*IdentType).Ident, ShouldEqual, "int")
 		})
 
 		Convey("by value i2", func() {
@@ -64,7 +64,7 @@ func TestConstant(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(i.Name, ShouldEqual, "i2")
 			So(i.Name, ShouldEqual, "i2")
-			So(i.Type.(IdentType).Ident, ShouldEqual, "float64")
+			So(i.Type.(*IdentType).Ident, ShouldEqual, "float64")
 		})
 
 		Convey("by value i3", func() {
@@ -72,7 +72,7 @@ func TestConstant(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(i.Name, ShouldEqual, "i3")
 			So(i.Name, ShouldEqual, "i3")
-			So(i.Type.(IdentType).Ident, ShouldEqual, "string")
+			So(i.Type.(*IdentType).Ident, ShouldEqual, "string")
 		})
 
 		Convey("by value i4", func() {
@@ -80,7 +80,7 @@ func TestConstant(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(i.Name, ShouldEqual, "i4")
 			So(i.Name, ShouldEqual, "i4")
-			So(i.Type.(IdentType).Ident, ShouldEqual, "char")
+			So(i.Type.(*IdentType).Ident, ShouldEqual, "char")
 		})
 
 		Convey("by value i6", func() {
@@ -88,7 +88,7 @@ func TestConstant(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(i.Name, ShouldEqual, "i6")
 			So(i.Name, ShouldEqual, "i6")
-			So(i.Type.(IdentType).Ident, ShouldEqual, "complex64")
+			So(i.Type.(*IdentType).Ident, ShouldEqual, "complex64")
 		})
 	})
 }

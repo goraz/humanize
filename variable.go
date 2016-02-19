@@ -15,7 +15,7 @@ type Variable struct {
 	indx   int
 }
 
-func variableFromValue(name string, indx int, e []ast.Expr, src string) Variable {
+func variableFromValue(name string, indx int, e []ast.Expr, src string) *Variable {
 	var t Type
 	var caller *ast.CallExpr
 	var ok bool
@@ -30,27 +30,27 @@ func variableFromValue(name string, indx int, e []ast.Expr, src string) Variable
 		case *ast.BasicLit:
 			switch data.Kind {
 			case token.INT:
-				t = IdentType{
+				t = &IdentType{
 					srcBase{getSource(data, src)},
 					"int",
 				}
 			case token.FLOAT:
-				t = IdentType{
+				t = &IdentType{
 					srcBase{getSource(data, src)},
 					"float64",
 				}
 			case token.IMAG:
-				t = IdentType{
+				t = &IdentType{
 					srcBase{getSource(data, src)},
 					"complex64",
 				}
 			case token.CHAR:
-				t = IdentType{
+				t = &IdentType{
 					srcBase{getSource(data, src)},
 					"char",
 				}
 			case token.STRING:
-				t = IdentType{
+				t = &IdentType{
 					srcBase{getSource(data, src)},
 					"string",
 				}
@@ -60,26 +60,26 @@ func variableFromValue(name string, indx int, e []ast.Expr, src string) Variable
 			//fmt.Printf("%s", src[data.Pos()-1:data.End()-1])
 		}
 	}
-	return Variable{
+	return &Variable{
 		Name:   name,
 		Type:   t,
 		caller: caller,
 		indx:   indx,
 	}
 }
-func variableFromExpr(name string, e ast.Expr, src string) Variable {
-	return Variable{
+func variableFromExpr(name string, e ast.Expr, src string) *Variable {
+	return &Variable{
 		Name: name,
 		Type: getType(e, src),
 	}
 }
 
 // NewVariable return an array of variables in the scope
-func NewVariable(v *ast.ValueSpec, c *ast.CommentGroup, src string) []Variable {
-	var res []Variable
+func NewVariable(v *ast.ValueSpec, c *ast.CommentGroup, src string) []*Variable {
+	var res []*Variable
 	for i := range v.Names {
 		name := nameFromIdent(v.Names[i])
-		var n Variable
+		var n *Variable
 		if v.Type != nil {
 			n = variableFromExpr(name, v.Type, src)
 		} else {

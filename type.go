@@ -13,8 +13,8 @@ import (
 
 // Type is for handling a type definition
 type Type interface {
-	// GetName return the type name in the source
-	GetName() string
+	// GetDefinition return the definition of type
+	GetDefinition() string
 }
 
 type srcBase struct {
@@ -40,11 +40,17 @@ type Field struct {
 	Tags reflect.StructTag
 }
 
+type Embed struct {
+	Type
+	Docs Docs
+	Tags reflect.StructTag
+}
+
 // StructType is a struct in source code
 type StructType struct {
 	srcBase
 	Fields []Field
-	Embed  []Type
+	Embeds []Embed
 }
 
 // ArrayType is the base array
@@ -57,7 +63,7 @@ type ArrayType struct {
 
 // EllipsisType is slice type but with ...type definition
 type EllipsisType struct {
-	ArrayType
+	*ArrayType
 }
 
 // MapType is the map type
@@ -93,8 +99,8 @@ type ChannelType struct {
 type FuncType struct {
 	srcBase
 
-	Parameters []Variable
-	Results    []Variable
+	Parameters []*Variable
+	Results    []*Variable
 }
 
 //TypeName contain type and its name
@@ -106,37 +112,37 @@ type TypeName struct {
 
 // GetDefinition return the definition of this type
 func (tn TypeName) GetDefinition() string {
-	return tn.Name + " " + tn.Type.GetName()
+	return tn.Name + " " + tn.Type.GetDefinition()
 }
 
 // GetName the name of this type
-func (i IdentType) GetName() string {
+func (i *IdentType) GetDefinition() string {
 	return i.Ident
 }
 
 // GetName the name of this type
-func (i StarType) GetName() string {
-	return "*" + i.Target.GetName()
+func (i *StarType) GetDefinition() string {
+	return "*" + i.Target.GetDefinition()
 }
 
 // GetName the name of this type
-func (i ArrayType) GetName() string {
+func (i *ArrayType) GetDefinition() string {
 	if i.Slice {
-		return "[]" + i.Type.GetName()
+		return "[]" + i.Type.GetDefinition()
 	}
-	return fmt.Sprintf("[%d]%s", i.Len, i.Type.GetName())
+	return fmt.Sprintf("[%d]%s", i.Len, i.Type.GetDefinition())
 }
 
 // GetName the name of this type
-func (i EllipsisType) GetName() string {
-	return fmt.Sprintf("[...]%s{}", i.Type.GetName())
+func (i *EllipsisType) GetDefinition() string {
+	return fmt.Sprintf("[...]%s{}", i.Type.GetDefinition())
 }
 
 // GetName the name of this type
-func (i StructType) GetName() string {
+func (i *StructType) GetDefinition() string {
 	res := "struct {\n"
-	for e := range i.Embed {
-		res += "\t" + i.Embed[e].GetName() + "\n"
+	for e := range i.Embeds {
+		res += "\t" + i.Embeds[e].GetDefinition() + "\n"
 	}
 
 	for f := range i.Fields {
@@ -144,35 +150,35 @@ func (i StructType) GetName() string {
 		if tags != "" {
 			tags = "`" + tags + "`"
 		}
-		res += fmt.Sprintf("\t%s %s %s\n", i.Fields[f].Name, i.Fields[f].Type.GetName(), tags)
+		res += fmt.Sprintf("\t%s %s %s\n", i.Fields[f].Name, i.Fields[f].Type.GetDefinition(), tags)
 	}
 	return res + "}"
 }
 
 // GetName the name of this type
-func (i MapType) GetName() string {
-	return fmt.Sprintf("map[%s]%s", i.Key.GetName(), i.Value.GetName())
+func (i *MapType) GetDefinition() string {
+	return fmt.Sprintf("map[%s]%s", i.Key.GetDefinition(), i.Value.GetDefinition())
 }
 
 // GetName the name of this type
-func (i SelectorType) GetName() string {
-	return i.Package + "." + i.Type.GetName()
+func (i *SelectorType) GetDefinition() string {
+	return i.Package + "." + i.Type.GetDefinition()
 }
 
 // GetName the name of this type
-func (i FuncType) GetName() string {
+func (i *FuncType) GetDefinition() string {
 	return "func " + i.getSign()
 }
 
 // GetSign the name of this type
-func (i FuncType) getSign() string {
+func (i *FuncType) getSign() string {
 	var args, res []string
 	for a := range i.Parameters {
-		args = append(args, i.Parameters[a].Type.GetName())
+		args = append(args, i.Parameters[a].Type.GetDefinition())
 	}
 
 	for a := range i.Results {
-		res = append(res, i.Results[a].Type.GetName())
+		res = append(res, i.Results[a].Type.GetDefinition())
 	}
 
 	result := "(" + strings.Join(args, ",") + ")"
@@ -186,25 +192,25 @@ func (i FuncType) getSign() string {
 }
 
 // GetName the name of this type
-func (i ChannelType) GetName() string {
+func (i *ChannelType) GetDefinition() string {
 	switch i.Direction {
 	case 1:
-		return "chan<- " + i.Type.GetName()
+		return "chan<- " + i.Type.GetDefinition()
 	case 2:
-		return "<-chan " + i.Type.GetName()
+		return "<-chan " + i.Type.GetDefinition()
 	default:
-		return "chan " + i.Type.GetName()
+		return "chan " + i.Type.GetDefinition()
 	}
 }
 
 // GetName the name of this type
-func (i InterfaceType) GetName() string {
+func (i *InterfaceType) GetDefinition() string {
 	res := "interface {\n"
 	for e := range i.Embed {
-		res += "\t" + i.Embed[e].GetName() + "\n"
+		res += "\t" + i.Embed[e].GetDefinition() + "\n"
 	}
 	for f := range i.Functions {
-		res += "\t" + i.Functions[f].Type.GetName() + "\n"
+		res += "\t" + i.Functions[f].Type.GetDefinition() + "\n"
 	}
 	return res + "}"
 }
@@ -223,12 +229,12 @@ func getType(e ast.Expr, src string) Type {
 	switch t := e.(type) {
 	case *ast.Ident:
 		// ident is the simplest one.
-		return IdentType{
+		return &IdentType{
 			srcBase{getSource(e, src)},
 			nameFromIdent(t),
 		}
 	case *ast.StarExpr:
-		return StarType{
+		return &StarType{
 			srcBase{getSource(e, src)},
 			getType(t.X, src),
 		}
@@ -241,7 +247,6 @@ func getType(e ast.Expr, src string) Type {
 				ls string
 			)
 			switch t.Len.(type) {
-
 			case *ast.BasicLit:
 				ls = t.Len.(*ast.BasicLit).Value
 			case *ast.Ellipsis:
@@ -251,25 +256,25 @@ func getType(e ast.Expr, src string) Type {
 			l, _ = strconv.Atoi(ls)
 		}
 		var at Type
-		at = ArrayType{
+		at = &ArrayType{
 			srcBase{getSource(e, src)},
 			t.Len == nil,
 			l,
 			getType(t.Elt, src),
 		}
 		if ellipsis {
-			at = EllipsisType{at.(ArrayType)}
+			at = &EllipsisType{at.(*ArrayType)}
 		}
 		return at
 	case *ast.MapType:
-		return MapType{
+		return &MapType{
 			srcBase{getSource(e, src)},
 			getType(t.Key, src),
 			getType(t.Value, src),
 		}
 
 	case *ast.StructType:
-		res := StructType{srcBase{getSource(e, src)}, nil, nil}
+		res := &StructType{srcBase{getSource(e, src)}, nil, nil}
 		for _, s := range t.Fields.List {
 			if s.Names != nil {
 				for i := range s.Names {
@@ -290,14 +295,22 @@ func getType(e ast.Expr, src string) Type {
 					res.Fields = append(res.Fields, f)
 				}
 			} else {
-				res.Embed = append(res.Embed, getType(s.Type, src))
+				e := Embed{
+					Type: getType(s.Type, src),
+				}
+				if s.Tag != nil {
+					e.Tags = reflect.StructTag(s.Tag.Value)
+					e.Tags = e.Tags[1 : len(e.Tags)-1]
+				}
+				e.Docs = docsFromNodeDoc(s.Doc)
+				res.Embeds = append(res.Embeds, e)
 			}
 		}
 
 		return res
 	case *ast.InterfaceType:
 		// TODO : interface may refer to itself I need more time to implement this
-		iface := InterfaceType{
+		iface := &InterfaceType{
 			srcBase: srcBase{getSource(e, src)},
 		}
 		for i := range t.Methods.List {
@@ -308,7 +321,7 @@ func getType(e ast.Expr, src string) Type {
 
 				res.Docs = docsFromNodeDoc(t.Methods.List[i].Doc)
 				typ := getType(t.Methods.List[i].Type, src)
-				res.Type = typ.(FuncType)
+				res.Type = typ.(*FuncType)
 				iface.Functions = append(iface.Functions, res)
 			} else {
 				// This is the embeded interface
@@ -319,19 +332,19 @@ func getType(e ast.Expr, src string) Type {
 		}
 		return iface
 	case *ast.ChanType:
-		return ChannelType{
+		return &ChannelType{
 			srcBase:   srcBase{getSource(e, src)},
 			Direction: t.Dir,
 			Type:      getType(t.Value, src),
 		}
 	case *ast.SelectorExpr:
-		return SelectorType{
+		return &SelectorType{
 			srcBase: srcBase{getSource(e, src)},
 			Package: nameFromIdent(t.X.(*ast.Ident)),
 			Type:    getType(t.Sel, src),
 		}
 	case *ast.FuncType:
-		return FuncType{
+		return &FuncType{
 			srcBase:    srcBase{getSource(e, src)},
 			Parameters: extractVariableList(t.Params, src),
 			Results:    extractVariableList(t.Results, src),
@@ -342,9 +355,9 @@ func getType(e ast.Expr, src string) Type {
 }
 
 // NewType handle a type
-func NewType(t *ast.TypeSpec, c *ast.CommentGroup, src string) TypeName {
+func NewType(t *ast.TypeSpec, c *ast.CommentGroup, src string) *TypeName {
 	doc := docsFromNodeDoc(c, t.Doc)
-	return TypeName{
+	return &TypeName{
 		Docs: doc,
 		Type: getType(t.Type, src),
 		Name: nameFromIdent(t.Name),

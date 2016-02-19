@@ -11,18 +11,22 @@ import (
 )
 
 // Package is list of files
-type Package []File
+type Package struct {
+	Files []File
+	Path  string
+	Name  string
+}
 
 var (
-	packageCache map[string]Package
+	packageCache map[string]*Package
 )
 
 // FindType return a base type interface base on the string name of the type
 func (p Package) FindType(t string) (*TypeName, error) {
-	for i := range p {
-		for j := range p[i].Types {
-			if p[i].Types[j].Name == t {
-				return &p[i].Types[j], nil
+	for i := range p.Files {
+		for j := range p.Files[i].Types {
+			if p.Files[i].Types[j].Name == t {
+				return p.Files[i].Types[j], nil
 			}
 		}
 	}
@@ -32,10 +36,10 @@ func (p Package) FindType(t string) (*TypeName, error) {
 
 // FindVariable try to find a package level variable
 func (p Package) FindVariable(t string) (*Variable, error) {
-	for i := range p {
-		for j := range p[i].Variables {
-			if p[i].Variables[j].Name == t {
-				return &p[i].Variables[j], nil
+	for i := range p.Files {
+		for j := range p.Files[i].Variables {
+			if p.Files[i].Variables[j].Name == t {
+				return p.Files[i].Variables[j], nil
 			}
 		}
 	}
@@ -45,10 +49,10 @@ func (p Package) FindVariable(t string) (*Variable, error) {
 
 // FindConstant try to find a package level variable
 func (p Package) FindConstant(t string) (*Constant, error) {
-	for i := range p {
-		for j := range p[i].Constants {
-			if p[i].Constants[j].Name == t {
-				return &p[i].Constants[j], nil
+	for i := range p.Files {
+		for j := range p.Files[i].Constants {
+			if p.Files[i].Constants[j].Name == t {
+				return p.Files[i].Constants[j], nil
 			}
 		}
 	}
@@ -58,10 +62,10 @@ func (p Package) FindConstant(t string) (*Constant, error) {
 
 // FindFunction try to find a package level variable
 func (p Package) FindFunction(t string) (*Function, error) {
-	for i := range p {
-		for j := range p[i].Functions {
-			if p[i].Functions[j].Name == t {
-				return &p[i].Functions[j], nil
+	for i := range p.Files {
+		for j := range p.Files[i].Functions {
+			if p.Files[i].Functions[j].Name == t {
+				return p.Files[i].Functions[j], nil
 			}
 		}
 	}
@@ -73,10 +77,10 @@ func (p Package) FindImport(t string) (*Import, error) {
 	if t == "" || t == "_" || t == "." {
 		return nil, fmt.Errorf("import with path _/. or empty is invalid")
 	}
-	for i := range p {
-		for j := range p[i].Imports {
-			if p[i].Imports[j].Name == t || p[i].Imports[j].Path == t {
-				return &p[i].Imports[j], nil
+	for i := range p.Files {
+		for j := range p.Files[i].Imports {
+			if p.Files[i].Imports[j].Name == t || p.Files[i].Imports[j].Path == t {
+				return p.Files[i].Imports[j], nil
 			}
 		}
 	}
@@ -110,27 +114,27 @@ func translateToFullPath(path string) (string, error) {
 	return test, nil
 }
 
-func lateBind(p Package) (res error) {
-	for f := range p {
+func lateBind(p *Package) (res error) {
+	for f := range p.Files {
 		// Try to find variable with null type and change them to real type
-		for v := range p[f].Variables {
-			if p[f].Variables[v].caller != nil {
-				switch c := p[f].Variables[v].caller.Fun.(type) {
+		for v := range p.Files[f].Variables {
+			if p.Files[f].Variables[v].caller != nil {
+				switch c := p.Files[f].Variables[v].caller.Fun.(type) {
 				case *ast.Ident:
 					name := nameFromIdent(c)
 					// TODO : list all builtin functions?
 					if name == "make" {
-						p[f].Variables[v].Type = getType(p[f].Variables[v].caller.Args[0], "")
+						p.Files[f].Variables[v].Type = getType(p.Files[f].Variables[v].caller.Args[0], "")
 					} else {
 						fn, err := p.FindFunction(name)
 						if err != nil {
 							return err
 						}
 
-						if len(fn.Type.Results) <= p[f].Variables[v].indx {
-							return fmt.Errorf("%d result is available but want the %d", len(fn.Type.Results), p[f].Variables[v].indx)
+						if len(fn.Type.Results) <= p.Files[f].Variables[v].indx {
+							return fmt.Errorf("%d result is available but want the %d", len(fn.Type.Results), p.Files[f].Variables[v].indx)
 						}
-						p[f].Variables[v].Type = fn.Type.Results[p[f].Variables[v].indx].Type
+						p.Files[f].Variables[v].Type = fn.Type.Results[p.Files[f].Variables[v].indx].Type
 					}
 				case *ast.SelectorExpr:
 					pkg := nameFromIdent(c.X.(*ast.Ident))
@@ -148,46 +152,46 @@ func lateBind(p Package) (res error) {
 						return err
 					}
 
-					if len(fn.Type.Results) <= p[f].Variables[v].indx {
-						return fmt.Errorf("%d result is available but want the %d", len(fn.Type.Results), p[f].Variables[v].indx)
+					if len(fn.Type.Results) <= p.Files[f].Variables[v].indx {
+						return fmt.Errorf("%d result is available but want the %d", len(fn.Type.Results), p.Files[f].Variables[v].indx)
 					}
-					foreignTyp := fn.Type.Results[p[f].Variables[v].indx].Type
+					foreignTyp := fn.Type.Results[p.Files[f].Variables[v].indx].Type
 					star := false
-					if sType, ok := foreignTyp.(StarType); ok {
+					if sType, ok := foreignTyp.(*StarType); ok {
 						foreignTyp = sType.Target
 						star = true
 					}
 					switch ft := foreignTyp.(type) {
-					case IdentType:
+					case *IdentType:
 						// this is a simple hack. if the type is begin with
 						// upper case, then its type on that package, else its a global type
 						name := ft.Ident
 						c := name[0]
 						if c >= 'A' && c <= 'Z' {
 							if star {
-								foreignTyp = StarType{
+								foreignTyp = &StarType{
 									ft.srcBase,
 									foreignTyp,
 								}
 							}
-							p[f].Variables[v].Type = SelectorType{
+							p.Files[f].Variables[v].Type = &SelectorType{
 								srcBase: srcBase{""}, // TODO : source?
 								Package: imprt.Name,
 								Type:    foreignTyp,
 							}
 						} else {
 							if star {
-								foreignTyp = StarType{
+								foreignTyp = &StarType{
 									ft.srcBase,
 									foreignTyp,
 								}
 							}
-							p[f].Variables[v].Type = foreignTyp
+							p.Files[f].Variables[v].Type = foreignTyp
 						}
 
 					default:
 						// the type is foreign to that package too
-						p[f].Variables[v].Type = ft
+						p.Files[f].Variables[v].Type = ft
 					}
 				}
 			}
@@ -197,12 +201,12 @@ func lateBind(p Package) (res error) {
 }
 
 // ParsePackage is here for loading a single package and parse all files in it
-func ParsePackage(path string) (Package, error) {
-	var p Package
-	var ok bool
-	if p, ok = packageCache[path]; ok {
+func ParsePackage(path string) (*Package, error) {
+	if p, ok := packageCache[path]; ok {
 		return p, nil
 	}
+	var p = &Package{}
+	p.Path = path
 	folder, err := translateToFullPath(path)
 	if err != nil {
 		return nil, err
@@ -237,7 +241,8 @@ func ParsePackage(path string) (Package, error) {
 				return err
 			}
 			fl.FileName = path
-			p = append(p, fl)
+			p.Files = append(p.Files, fl)
+			p.Name = fl.PackageName
 
 			return nil
 		},
@@ -255,5 +260,5 @@ func ParsePackage(path string) (Package, error) {
 }
 
 func init() {
-	packageCache = make(map[string]Package)
+	packageCache = make(map[string]*Package)
 }
