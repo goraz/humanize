@@ -117,6 +117,7 @@ func translateToFullPath(path string) (string, error) {
 func lateBind(p *Package) (res error) {
 	for f := range p.Files {
 		// Try to find variable with null type and change them to real type
+		thebigLoop:
 		for v := range p.Files[f].Variables {
 			if p.Files[f].Variables[v].caller != nil {
 				switch c := p.Files[f].Variables[v].caller.Fun.(type) {
@@ -137,7 +138,14 @@ func lateBind(p *Package) (res error) {
 						p.Files[f].Variables[v].Type = fn.Type.Results[p.Files[f].Variables[v].indx].Type
 					}
 				case *ast.SelectorExpr:
-					pkg := nameFromIdent(c.X.(*ast.Ident))
+					var pkg string
+					switch c.X.(type) {
+					case *ast.Ident:
+						pkg = nameFromIdent(c.X.(*ast.Ident))
+					case *ast.CallExpr: // TODO : Don't know why, no time for check
+						continue thebigLoop;
+					}
+
 					typ := nameFromIdent(c.Sel)
 					imprt, err := p.FindImport(pkg)
 					if err != nil {
