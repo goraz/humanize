@@ -11,9 +11,10 @@ var (
 
 // Constant is a string represent of a function parameter
 type Constant struct {
-	Name string
-	Type Type
-	Docs Docs
+	Name  string
+	Type  Type
+	Docs  Docs
+	Value string
 
 	caller *ast.CallExpr
 	indx   int
@@ -65,8 +66,7 @@ func constantFromValue(name string, indx int, e []ast.Expr, src string) *Constan
 				nameFromIdent(data),
 			}
 			//		default:
-			//			fmt.Printf("\nvar value => %T", data)
-			//			fmt.Printf("\n%s", src[data.Pos()-1:data.End()-1])
+
 		}
 	}
 	return &Constant{
@@ -83,6 +83,18 @@ func constantFromExpr(name string, e ast.Expr, src string) *Constant {
 	}
 }
 
+func getConstantValue(a []ast.Expr) string {
+	if len(a) == 0 {
+		return ""
+	}
+	switch first := a[0].(type) {
+	case *ast.BasicLit:
+		return first.Value
+	default:
+		return "NotSupportedYet"
+	}
+}
+
 // NewConstant return an array of constant in the scope
 func NewConstant(v *ast.ValueSpec, c *ast.CommentGroup, src string) []*Constant {
 	var res []*Constant
@@ -94,6 +106,7 @@ func NewConstant(v *ast.ValueSpec, c *ast.CommentGroup, src string) []*Constant 
 		} else {
 			n = constantFromValue(name, i, v.Values, src)
 		}
+		n.Value = getConstantValue(v.Values)
 		if n.Type == nil {
 			n.Type = lastConst
 		} else {
