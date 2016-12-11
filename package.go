@@ -117,7 +117,7 @@ func translateToFullPath(path string) (string, error) {
 func lateBind(p *Package) (res error) {
 	for f := range p.Files {
 		// Try to find variable with null type and change them to real type
-		thebigLoop:
+	thebigLoop:
 		for v := range p.Files[f].Variables {
 			if p.Files[f].Variables[v].caller != nil {
 				switch c := p.Files[f].Variables[v].caller.Fun.(type) {
@@ -143,13 +143,14 @@ func lateBind(p *Package) (res error) {
 					case *ast.Ident:
 						pkg = nameFromIdent(c.X.(*ast.Ident))
 					case *ast.CallExpr: // TODO : Don't know why, no time for check
-						continue thebigLoop;
+						continue thebigLoop
 					}
 
 					typ := nameFromIdent(c.Sel)
 					imprt, err := p.FindImport(pkg)
 					if err != nil {
-						return err
+						// TODO : package currently is not capable of parsing build tags. so ignore this :/
+						continue thebigLoop
 					}
 					pkgDef, err := ParsePackage(imprt.Path)
 					if err != nil {
