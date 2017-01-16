@@ -124,7 +124,7 @@ func lateBind(p *Package) (res error) {
 				case *ast.Ident:
 					name := nameFromIdent(c)
 					// TODO : list all builtin functions?
-					if name == "make" {
+					if name == "make" || name == "new" {
 						p.Files[f].Variables[v].Type = getType(p.Files[f].Variables[v].caller.Args[0], "")
 					} else {
 						fn, err := p.FindFunction(name)
