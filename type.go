@@ -108,6 +108,9 @@ type TypeName struct {
 	Type Type
 	Name string
 	Docs Docs
+
+	Methods     []*Function
+	StarMethods []*Function
 }
 
 // GetDefinition return the definition of this type

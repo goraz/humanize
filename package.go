@@ -209,6 +209,32 @@ func lateBind(p *Package) (res error) {
 	return nil
 }
 
+func findMethods(p *Package) error {
+	for _, f := range p.Files {
+		for _, fn := range f.Functions {
+			if fn.Reciever != nil {
+				t := fn.Reciever.Type
+				var pointer bool
+				if t2, ok := t.(*StarType); ok {
+					t = t2.Target
+					pointer = true
+				}
+				nt, err := p.FindType(t.GetDefinition())
+				if err != nil {
+					return err
+				}
+				if pointer {
+					nt.StarMethods = append(nt.StarMethods, fn)
+				} else {
+					nt.Methods = append(nt.Methods, fn)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 // ParsePackage is here for loading a single package and parse all files in it
 func ParsePackage(path string) (*Package, error) {
 	if p, ok := packageCache[path]; ok {
@@ -262,6 +288,11 @@ func ParsePackage(path string) (*Package, error) {
 	packageCache[path] = p
 
 	err = lateBind(p)
+	if err != nil {
+		return nil, err
+	}
+
+	err = findMethods(p)
 	if err != nil {
 		return nil, err
 	}
