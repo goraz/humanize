@@ -20,3 +20,11 @@ func NewFile() *os.File {
 func NoReturn() {
 
 }
+
+func (f) Test() {
+
+}
+
+func (*f) TestStar() {
+
+}

@@ -86,6 +86,14 @@ func TestCurrentPackage(t *testing.T) {
 		})
 
 		Convey("fact about the fixture", func() {
+			p, err := ParsePackage("github.com/goraz/humanize/fixture")
+			So(err, ShouldBeNil)
+			tt, err := p.FindType("f")
+			So(err, ShouldBeNil)
+			So(len(tt.Methods), ShouldEqual, 1)
+			So(tt.Methods[0].Name, ShouldEqual, "f.Test")
+			So(len(tt.StarMethods), ShouldEqual, 1)
+			So(tt.StarMethods[0].Name, ShouldEqual, "f.TestStar")
 			Convey("return unexported", func() {
 				f, err := ParseFile(validImport5)
 				So(err, ShouldBeNil)
