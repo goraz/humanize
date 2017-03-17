@@ -295,13 +295,14 @@ func (i *InterfaceType) GetDefinition() string {
 }
 
 func getSource(e ast.Expr, src string) string {
+	res := ""
 	start := e.Pos() - 1
 	end := e.End() - 1
 	// grab it in source
 	if len(src) >= int(end) {
-		return src[start:end]
+		res = src[start:end]
 	}
-	return ""
+	return res
 }
 
 func getImport(name string, f *File) *Import {

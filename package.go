@@ -107,20 +107,27 @@ func (p Package) FindImport(t string) (*Import, error) {
 func translateToFullPath(path string) (string, error) {
 	root := runtime.GOROOT()
 	gopath := strings.Split(os.Getenv("GOPATH"), ":")
-
-	test := filepath.Join(root, "src", path)
-	r, err := os.Stat(test)
+	gopath = append([]string{root}, gopath...)
+	var (
+		test string
+		r    os.FileInfo
+		err  error
+	)
+	for i := range gopath {
+		test = filepath.Join(gopath[i], "src", path)
+		r, err = os.Stat(test)
+		if err == nil {
+			break
+		}
+		// some hacky way to handle vendoring
+		test = filepath.Join(gopath[i], "src/vendor", path)
+		r, err = os.Stat(test)
+		if err == nil {
+			break
+		}
+	}
 	if err != nil {
-		for i := range gopath {
-			test = filepath.Join(gopath[i], "src", path)
-			r, err = os.Stat(test)
-			if err == nil {
-				break
-			}
-		}
-		if err != nil {
-			return "", fmt.Errorf("%s is not found in GOROOT or GOPATH", path)
-		}
+		return "", fmt.Errorf("%s is not found in GOROOT or GOPATH", path)
 	}
 
 	if !r.IsDir() {
