@@ -15,7 +15,7 @@ WRONG!
 
 func TestWrongFile(t *testing.T) {
 	Convey("Wrong file", t, func() {
-		_, err := ParseFile(fl)
+		_, err := ParseFile(fl, &Package{})
 		So(err, ShouldNotBeNil)
 	})
 }

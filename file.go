@@ -19,8 +19,9 @@ type File struct {
 }
 
 type walker struct {
-	src  string
-	File File
+	src     string
+	File    *File
+	Package *Package
 }
 
 func nameFromIdent(i *ast.Ident) (name string) {
@@ -49,7 +50,7 @@ func (fv *walker) Visit(node ast.Node) ast.Visitor {
 			fv.File.PackageName = nameFromIdent(t.Name)
 			fv.File.Docs = docsFromNodeDoc(t.Doc)
 		case *ast.FuncDecl:
-			fv.File.Functions = append(fv.File.Functions, NewFunction(t, fv.src))
+			fv.File.Functions = append(fv.File.Functions, NewFunction(t, fv.src, fv.File, fv.Package))
 			return nil // Do not go deeper
 		case *ast.GenDecl:
 			// Constants :/
@@ -59,12 +60,12 @@ func (fv *walker) Visit(node ast.Node) ast.Visitor {
 					fv.File.Imports = append(fv.File.Imports, NewImport(decl, t.Doc))
 				case *ast.ValueSpec:
 					if t.Tok.String() == "var" {
-						fv.File.Variables = append(fv.File.Variables, NewVariable(decl, t.Doc, fv.src)...)
+						fv.File.Variables = append(fv.File.Variables, NewVariable(decl, t.Doc, fv.src, fv.File, fv.Package)...)
 					} else if t.Tok.String() == "const" {
-						fv.File.Constants = append(fv.File.Constants, NewConstant(decl, t.Doc, fv.src)...)
+						fv.File.Constants = append(fv.File.Constants, NewConstant(decl, t.Doc, fv.src, fv.File, fv.Package)...)
 					}
 				case *ast.TypeSpec:
-					fv.File.Types = append(fv.File.Types, NewType(decl, t.Doc, fv.src))
+					fv.File.Types = append(fv.File.Types, NewType(decl, t.Doc, fv.src, fv.File, fv.Package))
 				}
 			}
 			return nil
@@ -76,17 +77,19 @@ func (fv *walker) Visit(node ast.Node) ast.Visitor {
 }
 
 // ParseFile try to parse a single file for its annotations
-func ParseFile(src string) (File, error) {
+func ParseFile(src string, p *Package) (*File, error) {
 	lastConst = nil
 	fset := token.NewFileSet()
 
 	f, err := parser.ParseFile(fset, "", src, parser.ParseComments)
 	if err != nil {
-		return File{}, err
+		return &File{}, err
 	}
 
 	fv := &walker{}
 	fv.src = src
+	fv.File = &File{}
+	fv.Package = p
 
 	ast.Walk(fv, f)
 

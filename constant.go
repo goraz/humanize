@@ -20,7 +20,7 @@ type Constant struct {
 	indx   int
 }
 
-func constantFromValue(name string, indx int, e []ast.Expr, src string) *Constant {
+func constantFromValue(name string, indx int, e []ast.Expr, src string, f *File, p *Package) *Constant {
 	var t Type
 	var caller *ast.CallExpr
 	var ok bool
@@ -36,33 +36,33 @@ func constantFromValue(name string, indx int, e []ast.Expr, src string) *Constan
 			switch data.Kind {
 			case token.INT:
 				t = &IdentType{
-					srcBase{getSource(data, src)},
+					srcBase{p, getSource(data, src)},
 					"int",
 				}
 			case token.FLOAT:
 				t = &IdentType{
-					srcBase{getSource(data, src)},
+					srcBase{p, getSource(data, src)},
 					"float64",
 				}
 			case token.IMAG:
 				t = &IdentType{
-					srcBase{getSource(data, src)},
+					srcBase{p, getSource(data, src)},
 					"complex64",
 				}
 			case token.CHAR:
 				t = &IdentType{
-					srcBase{getSource(data, src)},
+					srcBase{p, getSource(data, src)},
 					"char",
 				}
 			case token.STRING:
 				t = &IdentType{
-					srcBase{getSource(data, src)},
+					srcBase{p, getSource(data, src)},
 					"string",
 				}
 			}
 		case *ast.Ident:
 			t = &IdentType{
-				srcBase{getSource(data, src)},
+				srcBase{p, getSource(data, src)},
 				nameFromIdent(data),
 			}
 			//		default:
@@ -76,10 +76,10 @@ func constantFromValue(name string, indx int, e []ast.Expr, src string) *Constan
 		indx:   indx,
 	}
 }
-func constantFromExpr(name string, e ast.Expr, src string) *Constant {
+func constantFromExpr(name string, e ast.Expr, src string, f *File, p *Package) *Constant {
 	return &Constant{
 		Name: name,
-		Type: getType(e, src),
+		Type: getType(e, src, f, p),
 	}
 }
 
@@ -96,15 +96,15 @@ func getConstantValue(a []ast.Expr) string {
 }
 
 // NewConstant return an array of constant in the scope
-func NewConstant(v *ast.ValueSpec, c *ast.CommentGroup, src string) []*Constant {
+func NewConstant(v *ast.ValueSpec, c *ast.CommentGroup, src string, f *File, p *Package) []*Constant {
 	var res []*Constant
 	for i := range v.Names {
 		name := nameFromIdent(v.Names[i])
 		var n *Constant
 		if v.Type != nil {
-			n = constantFromExpr(name, v.Type, src)
+			n = constantFromExpr(name, v.Type, src, f, p)
 		} else {
-			n = constantFromValue(name, i, v.Values, src)
+			n = constantFromValue(name, i, v.Values, src, f, p)
 		}
 		n.Value = getConstantValue(v.Values)
 		if n.Type == nil {

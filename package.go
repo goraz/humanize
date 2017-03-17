@@ -8,18 +8,34 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 )
 
-// Package is list of files
+// pkg is list of files
 type Package struct {
-	Files []File
+	Files []*File
 	Path  string
 	Name  string
 }
 
 var (
-	packageCache map[string]*Package
+	packageCache = make(map[string]*Package)
+	lock         = sync.RWMutex{}
 )
+
+func setCache(path string, p *Package) {
+	lock.Lock()
+	defer lock.Unlock()
+
+	packageCache[path] = p
+}
+
+func getCache(path string) *Package {
+	lock.RLock()
+	defer lock.RUnlock()
+
+	return packageCache[path]
+}
 
 // FindType return a base type interface base on the string name of the type
 func (p Package) FindType(t string) (*TypeName, error) {
@@ -125,7 +141,7 @@ func lateBind(p *Package) (res error) {
 					name := nameFromIdent(c)
 					// TODO : list all builtin functions?
 					if name == "make" || name == "new" {
-						p.Files[f].Variables[v].Type = getType(p.Files[f].Variables[v].caller.Args[0], "")
+						p.Files[f].Variables[v].Type = getType(p.Files[f].Variables[v].caller.Args[0], "", p.Files[f], p)
 					} else {
 						fn, err := p.FindFunction(name)
 						if err != nil {
@@ -184,8 +200,8 @@ func lateBind(p *Package) (res error) {
 								}
 							}
 							p.Files[f].Variables[v].Type = &SelectorType{
-								srcBase: srcBase{""}, // TODO : source?
-								Package: imprt.Name,
+								srcBase: srcBase{p, ""}, // TODO : source?
+								pkg:     getImport(imprt.Name, p.Files[f]),
 								Type:    foreignTyp,
 							}
 						} else {
@@ -212,8 +228,8 @@ func lateBind(p *Package) (res error) {
 func findMethods(p *Package) error {
 	for _, f := range p.Files {
 		for _, fn := range f.Functions {
-			if fn.Reciever != nil {
-				t := fn.Reciever.Type
+			if fn.Receiver != nil {
+				t := fn.Receiver.Type
 				var pointer bool
 				if t2, ok := t.(*StarType); ok {
 					t = t2.Target
@@ -237,7 +253,7 @@ func findMethods(p *Package) error {
 
 // ParsePackage is here for loading a single package and parse all files in it
 func ParsePackage(path string) (*Package, error) {
-	if p, ok := packageCache[path]; ok {
+	if p := getCache(path); p != nil {
 		return p, nil
 	}
 	var p = &Package{}
@@ -250,11 +266,6 @@ func ParsePackage(path string) (*Package, error) {
 		folder,
 		func(path string, f os.FileInfo, err error) error {
 			if f.IsDir() {
-				return nil
-			}
-			// ignore test files (for now?)
-			_, filename := filepath.Split(path)
-			if len(filename) > 8 && filename[len(filename)-8:] == "_test.go" {
 				return nil
 			}
 			if filepath.Ext(path) != ".go" {
@@ -271,7 +282,7 @@ func ParsePackage(path string) (*Package, error) {
 				return err
 			}
 
-			fl, err := ParseFile(string(data))
+			fl, err := ParseFile(string(data), p)
 			if err != nil {
 				return err
 			}
@@ -285,8 +296,7 @@ func ParsePackage(path string) (*Package, error) {
 	if err != nil {
 		return nil, err
 	}
-	packageCache[path] = p
-
+	setCache(path, p)
 	err = lateBind(p)
 	if err != nil {
 		return nil, err
@@ -299,6 +309,8 @@ func ParsePackage(path string) (*Package, error) {
 	return p, nil
 }
 
-func init() {
-	packageCache = make(map[string]*Package)
+func assertNil(e interface{}) {
+	if e != nil {
+		panic(e)
+	}
 }

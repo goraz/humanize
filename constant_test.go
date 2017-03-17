@@ -30,7 +30,7 @@ const i6 = 10i
 
 func TestConstant(t *testing.T) {
 	Convey("constant test", t, func() {
-		f, err := ParseFile(cr)
+		f, err := ParseFile(cr, &Package{})
 		So(err, ShouldBeNil)
 		var p = &Package{}
 		p.Files = append(p.Files, f)

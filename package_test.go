@@ -94,10 +94,41 @@ func TestCurrentPackage(t *testing.T) {
 			So(tt.Methods[0].Name, ShouldEqual, "f.Test")
 			So(len(tt.StarMethods), ShouldEqual, 1)
 			So(tt.StarMethods[0].Name, ShouldEqual, "f.TestStar")
+			So(len(tt.GetAllMethods(false)), ShouldEqual, 1)
+			So(len(tt.GetAllMethods(true)), ShouldEqual, 2)
+
+			tt2, err := p.FindType("f2")
+			So(err, ShouldBeNil)
+			So(len(tt2.Methods), ShouldEqual, 0)
+			So(len(tt2.StarMethods), ShouldEqual, 0)
+			So(len(tt2.GetAllMethods(false)), ShouldEqual, 2)
+			So(len(tt2.GetAllMethods(true)), ShouldEqual, 2)
+
+			t1, err := p.FindType("T1")
+			So(err, ShouldBeNil)
+			it1 := t1.Type.(*InterfaceType)
+			So(tt.Support(it1, false), ShouldBeTrue)
+			So(tt.Support(it1, true), ShouldBeTrue)
+			So(tt2.Support(it1, true), ShouldBeTrue)
+
+			t2, err := p.FindType("T2")
+			So(err, ShouldBeNil)
+			it2 := t2.Type.(*InterfaceType)
+			So(tt.Support(it2, false), ShouldBeFalse)
+			So(tt.Support(it2, true), ShouldBeTrue)
+			So(tt2.Support(it2, true), ShouldBeTrue)
+
+			t3, err := p.FindType("T3")
+			So(err, ShouldBeNil)
+			it3 := t3.Type.(*InterfaceType)
+			So(tt.Support(it3, false), ShouldBeFalse)
+			So(tt.Support(it3, true), ShouldBeTrue)
+			So(tt2.Support(it3, true), ShouldBeTrue)
+
 			Convey("return unexported", func() {
-				f, err := ParseFile(validImport5)
-				So(err, ShouldBeNil)
 				var p = &Package{}
+				f, err := ParseFile(validImport5, p)
+				So(err, ShouldBeNil)
 				p.Files = append(p.Files, f)
 
 				err = lateBind(p)
@@ -114,9 +145,9 @@ func TestCurrentPackage(t *testing.T) {
 
 func TestErrors(t *testing.T) {
 	Convey("invalid file", t, func() {
-		f, err := ParseFile(invalidFunc)
-		So(err, ShouldBeNil)
 		var p = &Package{}
+		f, err := ParseFile(invalidFunc, p)
+		So(err, ShouldBeNil)
 		p.Files = append(p.Files, f)
 
 		err = lateBind(p)
@@ -124,9 +155,10 @@ func TestErrors(t *testing.T) {
 	})
 
 	Convey("invalid file 2", t, func() {
-		f, err := ParseFile(invalidFunc2)
-		So(err, ShouldBeNil)
 		var p = &Package{}
+		f, err := ParseFile(invalidFunc2, p)
+		So(err, ShouldBeNil)
+
 		p.Files = append(p.Files, f)
 
 		err = lateBind(p)
@@ -134,9 +166,10 @@ func TestErrors(t *testing.T) {
 	})
 
 	Convey("invalid import", t, func() {
-		f, err := ParseFile(invalidImport)
-		So(err, ShouldBeNil)
 		var p = &Package{}
+		f, err := ParseFile(invalidImport, p)
+		So(err, ShouldBeNil)
+
 		p.Files = append(p.Files, f)
 
 		// TODO : support build tags and enable this two line again
@@ -145,9 +178,10 @@ func TestErrors(t *testing.T) {
 	})
 
 	Convey("invalid import 2", t, func() {
-		f, err := ParseFile(invalidImport2)
-		So(err, ShouldBeNil)
 		var p = &Package{}
+		f, err := ParseFile(invalidImport2, p)
+		So(err, ShouldBeNil)
+
 		p.Files = append(p.Files, f)
 
 		err = lateBind(p)
@@ -155,9 +189,9 @@ func TestErrors(t *testing.T) {
 	})
 
 	Convey("invalid import 3", t, func() {
-		f, err := ParseFile(invalidImport3)
-		So(err, ShouldBeNil)
 		var p = &Package{}
+		f, err := ParseFile(invalidImport3, p)
+		So(err, ShouldBeNil)
 		p.Files = append(p.Files, f)
 
 		err = lateBind(p)
@@ -165,9 +199,10 @@ func TestErrors(t *testing.T) {
 	})
 
 	Convey("invalid import 4", t, func() {
-		f, err := ParseFile(invalidImport4)
-		So(err, ShouldBeNil)
 		var p = &Package{}
+
+		f, err := ParseFile(invalidImport4, p)
+		So(err, ShouldBeNil)
 		p.Files = append(p.Files, f)
 
 		err = lateBind(p)

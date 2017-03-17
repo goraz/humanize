@@ -15,10 +15,19 @@ import (
 type Type interface {
 	// GetDefinition return the definition of type
 	GetDefinition() string
+	// pkg return the package where this type is inside it
+	Package() *Package
+	// TypeName return the type with name of this type
+	//TypeName() *TypeName
 }
 
 type srcBase struct {
+	pkg *Package
 	src string
+}
+
+func (s srcBase) Package() *Package {
+	return s.pkg
 }
 
 // IdentType is for simple definition of a type, like int, string ...
@@ -33,13 +42,13 @@ type StarType struct {
 	Target Type
 }
 
-// Field is a single field of a structre, a variable, with tag
+// Field is a single field of a structure, a variable, with tag
 type Field struct {
 	Variable
-
 	Tags reflect.StructTag
 }
 
+// Embed is the embeded type in the struct or interface
 type Embed struct {
 	Type
 	Docs Docs
@@ -49,8 +58,8 @@ type Embed struct {
 // StructType is a struct in source code
 type StructType struct {
 	srcBase
-	Fields []Field
-	Embeds []Embed
+	Fields []*Field
+	Embeds []*Embed
 }
 
 // ArrayType is the base array
@@ -76,15 +85,15 @@ type MapType struct {
 // InterfaceType is a single interface in system
 type InterfaceType struct {
 	srcBase
-	Functions []Function
+	Functions []*Function
 	Embed     []Type // IdentType or SelectorType
 }
 
-// SelectorType on my knowlege is a type from another package (I hope)
+// SelectorType a type from another package
 type SelectorType struct {
 	srcBase
-	Package string
-	Type    Type
+	pkg  *Import
+	Type Type
 }
 
 // ChannelType is used to handle channel type definition
@@ -103,7 +112,7 @@ type FuncType struct {
 	Results    []*Variable
 }
 
-//TypeName contain type and its name
+//TypeName contain type and its name, means the type is in this package
 type TypeName struct {
 	Type Type
 	Name string
@@ -113,9 +122,71 @@ type TypeName struct {
 	StarMethods []*Function
 }
 
+// Package in selector type is not this package
+func (st *SelectorType) Package() *Package {
+	p, err := st.pkg.LoadPackage()
+	assertNil(err)
+	return p
+}
+
 // GetDefinition return the definition of this type
 func (tn TypeName) GetDefinition() string {
 	return tn.Name + " " + tn.Type.GetDefinition()
+}
+
+func getTypeName(t Type) (*TypeName, bool) {
+	var pointer bool
+	if t2, ok := t.(*StarType); ok {
+		t = t2.Target
+		pointer = true
+	}
+
+	if t2, ok := t.(*SelectorType); ok {
+		// its in another package, load it from there
+		p, err := t2.pkg.LoadPackage()
+		assertNil(err)
+		fmt.Println(t2.Type.GetDefinition())
+		t3, err := p.FindType(t2.Type.GetDefinition())
+		assertNil(err)
+		return t3, pointer
+	}
+
+	tn, err := t.Package().FindType(t.GetDefinition())
+	assertNil(err)
+	return tn, pointer
+}
+
+func (tn TypeName) GetAllMethods(pointer bool) []*Function {
+	met := tn.Methods
+	if pointer {
+		met = append(met, tn.StarMethods...)
+	}
+	// there is a small problem with struct types. if there is an struct type,
+	// then the embeded functions are important too.
+	if st, ok := tn.Type.(*StructType); ok && len(st.Embeds) > 0 {
+		// there is two case. one is when the struct is inside this package, other when its a selector
+		// both can be pointer, if pointer then the StartMethods are available
+		for i := range st.Embeds {
+			tn, pn := getTypeName(st.Embeds[i].Type)
+			met = append(met, tn.GetAllMethods(pn)...)
+		}
+	}
+
+	return met
+}
+
+// Support return true if the type support the interface, if pointer is true then it checked with
+// pointer receiver
+func (tn TypeName) Support(in *InterfaceType, pointer bool) bool {
+	two := tn.GetAllMethods(pointer)
+
+	one := in.Functions
+	for range in.Embed {
+		// TODO : add support for this
+		panic("TODO : embeded interface is not supported yet")
+	}
+
+	return compare(one, two)
 }
 
 // GetName the name of this type
@@ -165,7 +236,7 @@ func (i *MapType) GetDefinition() string {
 
 // GetName the name of this type
 func (i *SelectorType) GetDefinition() string {
-	return i.Package + "." + i.Type.GetDefinition()
+	return i.pkg.Name + "." + i.Type.GetDefinition()
 }
 
 // GetName the name of this type
@@ -228,18 +299,29 @@ func getSource(e ast.Expr, src string) string {
 	return ""
 }
 
-func getType(e ast.Expr, src string) Type {
+func getImport(name string, f *File) *Import {
+	for _, i := range f.Imports {
+		if i.Name == name {
+			return i
+		}
+	}
+
+	// error? invalid import
+	return nil
+}
+
+func getType(e ast.Expr, src string, f *File, p *Package) Type {
 	switch t := e.(type) {
 	case *ast.Ident:
 		// ident is the simplest one.
 		return &IdentType{
-			srcBase{getSource(e, src)},
+			srcBase{p, getSource(e, src)},
 			nameFromIdent(t),
 		}
 	case *ast.StarExpr:
 		return &StarType{
-			srcBase{getSource(e, src)},
-			getType(t.X, src),
+			srcBase{p, getSource(e, src)},
+			getType(t.X, src, f, p),
 		}
 	case *ast.ArrayType:
 		slice := t.Len == nil
@@ -260,10 +342,10 @@ func getType(e ast.Expr, src string) Type {
 		}
 		var at Type
 		at = &ArrayType{
-			srcBase{getSource(e, src)},
+			srcBase{p, getSource(e, src)},
 			t.Len == nil,
 			l,
-			getType(t.Elt, src),
+			getType(t.Elt, src, f, p),
 		}
 		if ellipsis {
 			at = &EllipsisType{at.(*ArrayType)}
@@ -271,19 +353,19 @@ func getType(e ast.Expr, src string) Type {
 		return at
 	case *ast.MapType:
 		return &MapType{
-			srcBase{getSource(e, src)},
-			getType(t.Key, src),
-			getType(t.Value, src),
+			srcBase{p, getSource(e, src)},
+			getType(t.Key, src, f, p),
+			getType(t.Value, src, f, p),
 		}
 
 	case *ast.StructType:
-		res := &StructType{srcBase{getSource(e, src)}, nil, nil}
+		res := &StructType{srcBase{p, getSource(e, src)}, nil, nil}
 		for _, s := range t.Fields.List {
 			if s.Names != nil {
 				for i := range s.Names {
 					v := Variable{
 						Name: nameFromIdent(s.Names[i]),
-						Type: getType(s.Type, src),
+						Type: getType(s.Type, src, f, p),
 					}
 
 					f := Field{
@@ -295,18 +377,18 @@ func getType(e ast.Expr, src string) Type {
 						f.Tags = f.Tags[1 : len(f.Tags)-1]
 					}
 					f.Docs = docsFromNodeDoc(s.Doc)
-					res.Fields = append(res.Fields, f)
+					res.Fields = append(res.Fields, &f)
 				}
 			} else {
 				e := Embed{
-					Type: getType(s.Type, src),
+					Type: getType(s.Type, src, f, p),
 				}
 				if s.Tag != nil {
 					e.Tags = reflect.StructTag(s.Tag.Value)
 					e.Tags = e.Tags[1 : len(e.Tags)-1]
 				}
 				e.Docs = docsFromNodeDoc(s.Doc)
-				res.Embeds = append(res.Embeds, e)
+				res.Embeds = append(res.Embeds, &e)
 			}
 		}
 
@@ -314,7 +396,7 @@ func getType(e ast.Expr, src string) Type {
 	case *ast.InterfaceType:
 		// TODO : interface may refer to itself I need more time to implement this
 		iface := &InterfaceType{
-			srcBase: srcBase{getSource(e, src)},
+			srcBase: srcBase{p, getSource(e, src)},
 		}
 		for i := range t.Methods.List {
 			res := Function{}
@@ -323,12 +405,12 @@ func getType(e ast.Expr, src string) Type {
 				res.Name = nameFromIdent(t.Methods.List[i].Names[0])
 
 				res.Docs = docsFromNodeDoc(t.Methods.List[i].Doc)
-				typ := getType(t.Methods.List[i].Type, src)
+				typ := getType(t.Methods.List[i].Type, src, f, p)
 				res.Type = typ.(*FuncType)
-				iface.Functions = append(iface.Functions, res)
+				iface.Functions = append(iface.Functions, &res)
 			} else {
 				// This is the embeded interface
-				embed := getType(t.Methods.List[i].Type, src)
+				embed := getType(t.Methods.List[i].Type, src, f, p)
 				iface.Embed = append(iface.Embed, embed)
 			}
 
@@ -336,21 +418,21 @@ func getType(e ast.Expr, src string) Type {
 		return iface
 	case *ast.ChanType:
 		return &ChannelType{
-			srcBase:   srcBase{getSource(e, src)},
+			srcBase:   srcBase{p, getSource(e, src)},
 			Direction: t.Dir,
-			Type:      getType(t.Value, src),
+			Type:      getType(t.Value, src, f, p),
 		}
 	case *ast.SelectorExpr:
 		return &SelectorType{
-			srcBase: srcBase{getSource(e, src)},
-			Package: nameFromIdent(t.X.(*ast.Ident)),
-			Type:    getType(t.Sel, src),
+			srcBase: srcBase{p, getSource(e, src)},
+			pkg:     getImport(nameFromIdent(t.X.(*ast.Ident)), f),
+			Type:    getType(t.Sel, src, f, p),
 		}
 	case *ast.FuncType:
 		return &FuncType{
-			srcBase:    srcBase{getSource(e, src)},
-			Parameters: extractVariableList(t.Params, src),
-			Results:    extractVariableList(t.Results, src),
+			srcBase:    srcBase{p, getSource(e, src)},
+			Parameters: extractVariableList(t.Params, src, f, p),
+			Results:    extractVariableList(t.Results, src, f, p),
 		}
 	}
 
@@ -358,11 +440,11 @@ func getType(e ast.Expr, src string) Type {
 }
 
 // NewType handle a type
-func NewType(t *ast.TypeSpec, c *ast.CommentGroup, src string) *TypeName {
+func NewType(t *ast.TypeSpec, c *ast.CommentGroup, src string, f *File, p *Package) *TypeName {
 	doc := docsFromNodeDoc(c, t.Doc)
 	return &TypeName{
 		Docs: doc,
-		Type: getType(t.Type, src),
+		Type: getType(t.Type, src, f, p),
 		Name: nameFromIdent(t.Name),
 	}
 }

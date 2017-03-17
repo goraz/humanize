@@ -27,9 +27,10 @@ var i6 = 10i
 
 func TestVariable(t *testing.T) {
 	Convey("Variable test", t, func() {
-		f, err := ParseFile(vr)
-		So(err, ShouldBeNil)
 		var p = &Package{}
+
+		f, err := ParseFile(vr, p)
+		So(err, ShouldBeNil)
 		p.Files = append(p.Files, f)
 		Convey("Normal define", func() {
 			i, err := p.FindVariable("i")

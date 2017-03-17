@@ -57,9 +57,10 @@ type EMBEDINTERFACE interface {
 
 func TestType(t *testing.T) {
 	Convey("Variable test", t, func() {
-		f, err := ParseFile(typ)
-		So(err, ShouldBeNil)
 		var p = &Package{}
+
+		f, err := ParseFile(typ, p)
+		So(err, ShouldBeNil)
 		p.Files = append(p.Files, f)
 		Convey("ident type", func() {
 			t, err := p.FindType("INT")
@@ -150,7 +151,7 @@ func TestType(t *testing.T) {
 		Convey("select type", func() {
 			t, err := p.FindType("SEL")
 			So(err, ShouldBeNil)
-			So(t.Type.(*SelectorType).Package, ShouldEqual, "onion")
+			So(t.Type.(*SelectorType).pkg.Name, ShouldEqual, "onion")
 			So(t.Type.(*SelectorType).Type.(*IdentType).Ident, ShouldEqual, "Layer")
 			So(t.Type.GetDefinition(), ShouldEqual, "onion.Layer")
 		})
