@@ -10,7 +10,6 @@ import (
 
 	"github.com/fzerorubigd/onion"
 	"github.com/goraz/humanize"
-	"github.com/lib/pq"
 )
 
 const (

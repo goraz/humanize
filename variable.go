@@ -20,6 +20,7 @@ func variableFromValue(name string, indx int, e []ast.Expr, src string, f *File,
 	var caller *ast.CallExpr
 	var ok bool
 	first := e[0]
+	// if the caller is a CallExpr, then late bind will take care of it
 	if caller, ok = first.(*ast.CallExpr); !ok {
 		switch data := e[indx].(type) {
 		case *ast.CompositeLit:
@@ -56,7 +57,7 @@ func variableFromValue(name string, indx int, e []ast.Expr, src string, f *File,
 				}
 			}
 			//default:
-			//fmt.Printf("var value => %T", data)
+			//fmt.Printf("var value => %T", e[indx])
 			//fmt.Printf("%s", src[data.Pos()-1:data.End()-1])
 		}
 	}

@@ -14,12 +14,8 @@ type Import struct {
 }
 
 // LoadPackage is the function to load import package
-func (i Import) LoadPackage() (*Package, error) {
-	p := getCache(i.Path)
-	if p != nil {
-		return p, nil
-	}
-	return ParsePackage(i.Path)
+func (i Import) LoadPackage() *Package {
+	return getCache(i.Path)
 }
 
 // NewImport extract a new import entry

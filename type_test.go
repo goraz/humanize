@@ -53,6 +53,8 @@ type EMBEDINTERFACE interface {
    INTERFACE
 }
 
+var on = onion.New()
+
 `
 
 func TestType(t *testing.T) {
@@ -204,6 +206,16 @@ func TestType(t *testing.T) {
 			So(len(t.Type.(*InterfaceType).Embed), ShouldEqual, 1)
 			So(t.Type.(*InterfaceType).Embed[0].(*IdentType).Ident, ShouldEqual, "INTERFACE")
 			So(t.Type.GetDefinition(), ShouldEqual, "interface {\n\tINTERFACE\n}")
+		})
+
+		Convey("selector type", func() {
+			lateBind(p)
+			t, err := p.FindVariable("on")
+			So(err, ShouldBeNil)
+			sel, ok := t.Type.(*SelectorType)
+			So(ok, ShouldBeTrue)
+			p2 := sel.Package()
+			So(p2.Path, ShouldEqual, "github.com/fzerorubigd/onion")
 		})
 
 	})

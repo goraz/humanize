@@ -58,6 +58,14 @@ var s = fixture.NewF()
 var f = fixture.NewFile()
 `
 
+const invalidReceiver = `
+package invalid
+
+func (x test) InvaidRec() {
+
+}
+`
+
 func TestCurrentPackage(t *testing.T) {
 	Convey("Current package", t, func() {
 		p, err := ParsePackage("github.com/goraz/humanize")
@@ -125,6 +133,13 @@ func TestCurrentPackage(t *testing.T) {
 			So(tt.Support(it3, true), ShouldBeTrue)
 			So(tt2.Support(it3, true), ShouldBeTrue)
 
+			tt3, err := p.FindType("f3")
+			So(err, ShouldBeNil)
+			t4, err := p.FindType("T4")
+			So(err, ShouldBeNil)
+			it4 := t4.Type.(*InterfaceType)
+			So(tt3.Support(it4, true), ShouldBeTrue)
+
 			Convey("return unexported", func() {
 				var p = &Package{}
 				f, err := ParseFile(validImport5, p)
@@ -137,6 +152,14 @@ func TestCurrentPackage(t *testing.T) {
 				s, err := p.FindVariable("s")
 				So(err, ShouldBeNil)
 				So(s.Name, ShouldEqual, "s")
+			})
+
+			Convey("invalid receiver", func() {
+				var p = &Package{}
+				f, err := ParseFile(invalidReceiver, p)
+				So(err, ShouldBeNil) // the error is not detected here
+				p.Files = append(p.Files, f)
+				So(findMethods(p), ShouldNotBeNil)
 			})
 
 		})

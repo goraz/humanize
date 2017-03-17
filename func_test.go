@@ -44,6 +44,27 @@ func (Boogh) Some() {
 
 }
 
+func Some(int) {
+
+}
+
+func (Boogh) Some1(int) {
+
+}
+
+func Some1(string) {
+
+}
+
+func (Boogh) Some2() int {
+	return 0
+}
+
+func Some2() error {
+	return nil
+}
+
+
 `
 
 func TestFunctionData(t *testing.T) {
@@ -147,6 +168,29 @@ func TestFunctionData(t *testing.T) {
 			So(fn.Receiver.Type.(*IdentType).Ident, ShouldEqual, "Boogh")
 			So(len(fn.Type.Parameters), ShouldEqual, 0)
 			So(len(fn.Type.Results), ShouldEqual, 0)
+		})
+
+		Convey("compare functions", func() {
+			fn1, err := p.FindFunction("Some")
+			So(err, ShouldBeNil)
+			fn2, err := p.FindFunction("Boogh.Some")
+			So(err, ShouldBeNil)
+
+			So(compareFunc(fn1, fn2), ShouldBeFalse)
+
+			fn1, err = p.FindFunction("Some1")
+			So(err, ShouldBeNil)
+			fn2, err = p.FindFunction("Boogh.Some1")
+			So(err, ShouldBeNil)
+
+			So(compareFunc(fn1, fn2), ShouldBeFalse)
+
+			fn1, err = p.FindFunction("Some2")
+			So(err, ShouldBeNil)
+			fn2, err = p.FindFunction("Boogh.Some2")
+			So(err, ShouldBeNil)
+
+			So(compareFunc(fn1, fn2), ShouldBeFalse)
 		})
 	})
 }

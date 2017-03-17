@@ -124,8 +124,7 @@ type TypeName struct {
 
 // Package in selector type is not this package
 func (st *SelectorType) Package() *Package {
-	p, err := st.pkg.LoadPackage()
-	assertNil(err)
+	p := st.pkg.LoadPackage()
 	return p
 }
 
@@ -143,9 +142,7 @@ func getTypeName(t Type) (*TypeName, bool) {
 
 	if t2, ok := t.(*SelectorType); ok {
 		// its in another package, load it from there
-		p, err := t2.pkg.LoadPackage()
-		assertNil(err)
-		fmt.Println(t2.Type.GetDefinition())
+		p := t2.pkg.LoadPackage()
 		t3, err := p.FindType(t2.Type.GetDefinition())
 		assertNil(err)
 		return t3, pointer
@@ -175,16 +172,24 @@ func (tn TypeName) GetAllMethods(pointer bool) []*Function {
 	return met
 }
 
+func getInterfaceFunc(in *InterfaceType) []*Function {
+	fn := in.Functions
+	for i := range in.Embed {
+		p := in.Embed[i].Package()
+		tn, err := p.FindType(removeReceiver(in.Embed[i].GetDefinition()))
+		assertNil(err)
+		ni := tn.Type.(*InterfaceType)
+		fn = append(fn, getInterfaceFunc(ni)...)
+	}
+	return fn
+}
+
 // Support return true if the type support the interface, if pointer is true then it checked with
 // pointer receiver
 func (tn TypeName) Support(in *InterfaceType, pointer bool) bool {
 	two := tn.GetAllMethods(pointer)
 
-	one := in.Functions
-	for range in.Embed {
-		// TODO : add support for this
-		panic("TODO : embeded interface is not supported yet")
-	}
+	one := getInterfaceFunc(in)
 
 	return compare(one, two)
 }

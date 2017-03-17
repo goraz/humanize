@@ -1,6 +1,10 @@
 package fixture
 
-import "os"
+import (
+	"os"
+
+	"github.com/fzerorubigd/onion"
+)
 
 var X, err = os.Open("the_file")
 
@@ -11,6 +15,11 @@ type f struct {
 
 type f2 struct {
 	*f
+}
+
+type f3 struct {
+	*f
+	*onion.Onion
 }
 
 type T1 interface {
@@ -24,6 +33,11 @@ type T2 interface {
 type T3 interface {
 	Test()
 	TestStar()
+}
+
+type T4 interface {
+	T3
+	SetDelimiter(d string)
 }
 
 func NewF() *f {
