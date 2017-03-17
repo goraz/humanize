@@ -130,6 +130,18 @@ func translateToFullPath(path string) (string, error) {
 	return test, nil
 }
 
+func checkTypeCast(p *Package, args []ast.Expr, name string) (Type, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf("it can not be a typecast : %s", name)
+	}
+	t, err := p.FindType(name)
+	if err == nil {
+		return t.Type, nil
+	}
+
+	return nil, fmt.Errorf("can not find the call for %s", name)
+}
+
 func lateBind(p *Package) (res error) {
 	for f := range p.Files {
 		// Try to find variable with null type and change them to real type
@@ -143,15 +155,21 @@ func lateBind(p *Package) (res error) {
 					if name == "make" || name == "new" {
 						p.Files[f].Variables[v].Type = getType(p.Files[f].Variables[v].caller.Args[0], "", p.Files[f], p)
 					} else {
+						var t Type
 						fn, err := p.FindFunction(name)
-						if err != nil {
-							return err
+						if err == nil {
+							if len(fn.Type.Results) <= p.Files[f].Variables[v].indx {
+								return fmt.Errorf("%d result is available but want the %d", len(fn.Type.Results), p.Files[f].Variables[v].indx)
+							}
+							t = fn.Type.Results[p.Files[f].Variables[v].indx].Type
+						} else {
+							t, err = checkTypeCast(p, p.Files[f].Variables[v].caller.Args, name)
+							if err != nil {
+								return err
+							}
 						}
 
-						if len(fn.Type.Results) <= p.Files[f].Variables[v].indx {
-							return fmt.Errorf("%d result is available but want the %d", len(fn.Type.Results), p.Files[f].Variables[v].indx)
-						}
-						p.Files[f].Variables[v].Type = fn.Type.Results[p.Files[f].Variables[v].indx].Type
+						p.Files[f].Variables[v].Type = t
 					}
 				case *ast.SelectorExpr:
 					var pkg string
@@ -172,15 +190,21 @@ func lateBind(p *Package) (res error) {
 					if err != nil {
 						return err
 					}
+					var t Type
 					fn, err := pkgDef.FindFunction(typ)
-					if err != nil {
-						return err
+					if err == nil {
+						if len(fn.Type.Results) <= p.Files[f].Variables[v].indx {
+							return fmt.Errorf("%d result is available but want the %d", len(fn.Type.Results), p.Files[f].Variables[v].indx)
+						}
+						t = fn.Type.Results[p.Files[f].Variables[v].indx].Type
+					} else {
+						t, err = checkTypeCast(pkgDef, p.Files[f].Variables[v].caller.Args, typ)
+						if err != nil {
+							return err
+						}
 					}
 
-					if len(fn.Type.Results) <= p.Files[f].Variables[v].indx {
-						return fmt.Errorf("%d result is available but want the %d", len(fn.Type.Results), p.Files[f].Variables[v].indx)
-					}
-					foreignTyp := fn.Type.Results[p.Files[f].Variables[v].indx].Type
+					foreignTyp := t
 					star := false
 					if sType, ok := foreignTyp.(*StarType); ok {
 						foreignTyp = sType.Target

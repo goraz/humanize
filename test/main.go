@@ -32,8 +32,6 @@ var (
 // the hes var
 var hes string
 
-var h pq.NullTime
-
 // Commet
 type example struct {
 	p int `tag:"str"`
@@ -77,6 +75,13 @@ func (m *example) Test(x string) (y string) {
 	return
 }
 
+type layer struct {
+}
+
+func (layer) Load() (map[string]interface{}, error) {
+	return nil, nil
+}
+
 var o = onion.New()
 
 var j, _ = AnnotatedOne("", 1, 1, 1, example{}, nil, nil)
@@ -89,11 +94,17 @@ var js = 10
 
 var im complex64
 
+type testType int
+
+var xxx = testType(10)
+
+var yyy = onion.Layer(layer{})
+
 var pop = [...]int{1, 2, 6}
 
 // Test
 func main() {
-	p, err := humanize.ParsePackage("github.com/goraz/annotate/test")
+	p, err := humanize.ParsePackage("github.com/goraz/humanize/test")
 	if err != nil {
 		panic(err)
 	}
