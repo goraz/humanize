@@ -271,6 +271,11 @@ func ParsePackage(path string) (*Package, error) {
 			if filepath.Ext(path) != ".go" {
 				return nil
 			}
+			// ignore test files (for now?)
+			_, filename := filepath.Split(path)
+			if len(filename) > 8 && filename[len(filename)-8:] == "_test.go" {
+				return nil
+			}
 			r, err := os.Open(path)
 			if err != nil {
 				return err
