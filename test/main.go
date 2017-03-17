@@ -82,6 +82,10 @@ func (layer) Load() (map[string]interface{}, error) {
 	return nil, nil
 }
 
+func (layer) Error() string {
+	return ""
+}
+
 var o = onion.New()
 
 var j, _ = AnnotatedOne("", 1, 1, 1, example{}, nil, nil)
@@ -99,6 +103,8 @@ type testType int
 var xxx = testType(10)
 
 var yyy = onion.Layer(layer{})
+
+var eee = error(layer{})
 
 var pop = [...]int{1, 2, 6}
 

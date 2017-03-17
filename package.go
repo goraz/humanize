@@ -130,11 +130,17 @@ func translateToFullPath(path string) (string, error) {
 	return test, nil
 }
 
-func checkTypeCast(p *Package, args []ast.Expr, name string) (Type, error) {
+func checkTypeCast(p *Package, bi *Package, args []ast.Expr, name string) (Type, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("it can not be a typecast : %s", name)
 	}
-	t, err := p.FindType(name)
+
+	t, err := bi.FindType(name)
+	if err == nil {
+		return t.Type, nil
+	}
+
+	t, err = p.FindType(name)
 	if err == nil {
 		return t.Type, nil
 	}
@@ -143,6 +149,9 @@ func checkTypeCast(p *Package, args []ast.Expr, name string) (Type, error) {
 }
 
 func lateBind(p *Package) (res error) {
+	builtin, err := ParsePackage("builtin")
+	assertNil(err)
+
 	for f := range p.Files {
 		// Try to find variable with null type and change them to real type
 	thebigLoop:
@@ -151,9 +160,9 @@ func lateBind(p *Package) (res error) {
 				switch c := p.Files[f].Variables[v].caller.Fun.(type) {
 				case *ast.Ident:
 					name := nameFromIdent(c)
-					// TODO : list all builtin functions?
-					if name == "make" || name == "new" {
-						p.Files[f].Variables[v].Type = getType(p.Files[f].Variables[v].caller.Args[0], "", p.Files[f], p)
+					bl, err := builtin.FindFunction(name)
+					if err == nil {
+						p.Files[f].Variables[v].Type = bl.Type
 					} else {
 						var t Type
 						fn, err := p.FindFunction(name)
@@ -163,7 +172,7 @@ func lateBind(p *Package) (res error) {
 							}
 							t = fn.Type.Results[p.Files[f].Variables[v].indx].Type
 						} else {
-							t, err = checkTypeCast(p, p.Files[f].Variables[v].caller.Args, name)
+							t, err = checkTypeCast(p, builtin, p.Files[f].Variables[v].caller.Args, name)
 							if err != nil {
 								return err
 							}
@@ -198,7 +207,7 @@ func lateBind(p *Package) (res error) {
 						}
 						t = fn.Type.Results[p.Files[f].Variables[v].indx].Type
 					} else {
-						t, err = checkTypeCast(pkgDef, p.Files[f].Variables[v].caller.Args, typ)
+						t, err = checkTypeCast(pkgDef, builtin, p.Files[f].Variables[v].caller.Args, typ)
 						if err != nil {
 							return err
 						}
