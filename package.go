@@ -306,7 +306,11 @@ func ParsePackage(path string) (*Package, error) {
 		folder,
 		func(path string, f os.FileInfo, err error) error {
 			if f.IsDir() {
-				return nil
+				if path != folder {
+					return filepath.SkipDir
+				} else {
+					return nil
+				}
 			}
 			if filepath.Ext(path) != ".go" {
 				return nil
