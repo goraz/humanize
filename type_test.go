@@ -53,6 +53,10 @@ type EMBEDINTERFACE interface {
    INTERFACE
 }
 
+type EMPTYSTRUCT struct{}
+
+type EMPTYINTERFACE interface{}
+
 var on = onion.New()
 
 `
@@ -173,7 +177,7 @@ func TestType(t *testing.T) {
 			So(t.Type.(*StructType).Fields[2].Name, ShouldEqual, "X")
 			So(t.Type.(*StructType).Fields[2].Tags, ShouldEqual, "")
 			So(t.Type.(*StructType).Fields[2].Type.(*IdentType).Ident, ShouldEqual, "int")
-			So(t.Type.GetDefinition(), ShouldEqual, "struct {\n\tN SEL `json:\"tag\"`\n\tM MAP \n\tX int \n}")
+			So(t.Type.GetDefinition(), ShouldEqual, "struct{\n\tN SEL `json:\"tag\"`\n\tM MAP \n\tX int \n}")
 		})
 
 		Convey("embed struct type", func() {
@@ -183,7 +187,15 @@ func TestType(t *testing.T) {
 			So(len(t.Type.(*StructType).Embeds), ShouldEqual, 1)
 			So(t.Type.(*StructType).Embeds[0].Type.(*IdentType).Ident, ShouldEqual, "STRUCT")
 			So(t.Type.(*StructType).Embeds[0].Tags.Get("json"), ShouldEqual, "tag")
-			So(t.Type.GetDefinition(), ShouldEqual, "struct {\n\tSTRUCT\n}")
+			So(t.Type.GetDefinition(), ShouldEqual, "struct{\n\tSTRUCT\n}")
+		})
+
+		Convey("empty struct type", func() {
+			t, err := p.FindType("EMPTYSTRUCT")
+			So(err, ShouldBeNil)
+			So(len(t.Type.(*StructType).Fields), ShouldEqual, 0)
+			So(len(t.Type.(*StructType).Embeds), ShouldEqual, 0)
+			So(t.Type.GetDefinition(), ShouldEqual, "struct{}")
 		})
 
 		Convey("interface type", func() {
@@ -194,7 +206,7 @@ func TestType(t *testing.T) {
 
 			So(len(t.Type.(*InterfaceType).Functions[0].Type.Parameters), ShouldEqual, 3)
 			So(len(t.Type.(*InterfaceType).Functions[0].Type.Results), ShouldEqual, 2)
-			So(t.Type.GetDefinition(), ShouldEqual, `interface {
+			So(t.Type.GetDefinition(), ShouldEqual, `interface{
 	func Test(int,INT,FUNC) (FUNC,error)
 }`)
 		})
@@ -205,7 +217,15 @@ func TestType(t *testing.T) {
 			So(len(t.Type.(*InterfaceType).Functions), ShouldEqual, 0)
 			So(len(t.Type.(*InterfaceType).Embed), ShouldEqual, 1)
 			So(t.Type.(*InterfaceType).Embed[0].(*IdentType).Ident, ShouldEqual, "INTERFACE")
-			So(t.Type.GetDefinition(), ShouldEqual, "interface {\n\tINTERFACE\n}")
+			So(t.Type.GetDefinition(), ShouldEqual, "interface{\n\tINTERFACE\n}")
+		})
+
+		Convey("empty interface type", func() {
+			t, err := p.FindType("EMPTYINTERFACE")
+			So(err, ShouldBeNil)
+			So(len(t.Type.(*InterfaceType).Functions), ShouldEqual, 0)
+			So(len(t.Type.(*InterfaceType).Embed), ShouldEqual, 0)
+			So(t.Type.GetDefinition(), ShouldEqual, "interface{}")
 		})
 
 		Convey("selector type", func() {

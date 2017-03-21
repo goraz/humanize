@@ -219,7 +219,10 @@ func (i *EllipsisType) GetDefinition() string {
 
 // GetName the name of this type
 func (i *StructType) GetDefinition() string {
-	res := "struct {\n"
+	if len(i.Embeds) == 0 && len(i.Fields) == 0 {
+		return "struct{}"
+	}
+	res := "struct{\n"
 	for e := range i.Embeds {
 		res += "\t" + i.Embeds[e].GetDefinition() + "\n"
 	}
@@ -288,7 +291,11 @@ func (i *ChannelType) GetDefinition() string {
 
 // GetName the name of this type
 func (i *InterfaceType) GetDefinition() string {
-	res := "interface {\n"
+	if len(i.Embed) == 0 && len(i.Functions) == 0 {
+		return "interface{}"
+	}
+
+	res := "interface{\n"
 	for e := range i.Embed {
 		res += "\t" + i.Embed[e].GetDefinition() + "\n"
 	}
