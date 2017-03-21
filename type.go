@@ -249,6 +249,10 @@ func (i *FuncType) GetDefinition() string {
 	return "func " + i.getSign()
 }
 
+func (i *FuncType) getDefinitionWithName(name string) string {
+	return "func " + name + i.getSign()
+}
+
 // GetSign the name of this type
 func (i *FuncType) getSign() string {
 	var args, res []string
@@ -289,7 +293,7 @@ func (i *InterfaceType) GetDefinition() string {
 		res += "\t" + i.Embed[e].GetDefinition() + "\n"
 	}
 	for f := range i.Functions {
-		res += "\t" + i.Functions[f].Type.GetDefinition() + "\n"
+		res += "\t" + i.Functions[f].Type.getDefinitionWithName(i.Functions[f].Name) + "\n"
 	}
 	return res + "}"
 }

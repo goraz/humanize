@@ -195,7 +195,7 @@ func TestType(t *testing.T) {
 			So(len(t.Type.(*InterfaceType).Functions[0].Type.Parameters), ShouldEqual, 3)
 			So(len(t.Type.(*InterfaceType).Functions[0].Type.Results), ShouldEqual, 2)
 			So(t.Type.GetDefinition(), ShouldEqual, `interface {
-	func (int,INT,FUNC) (FUNC,error)
+	func Test(int,INT,FUNC) (FUNC,error)
 }`)
 		})
 
