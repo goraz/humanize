@@ -92,8 +92,9 @@ type InterfaceType struct {
 // SelectorType a type from another package
 type SelectorType struct {
 	srcBase
-	pkg  *Import
-	Type Type
+	pkg   *Import
+	ident *IdentType
+	Type  Type
 }
 
 // ChannelType is used to handle channel type definition
@@ -126,6 +127,20 @@ type TypeName struct {
 func (st *SelectorType) Package() *Package {
 	p := st.pkg.LoadPackage()
 	return p
+}
+
+func (st *SelectorType) IdentType() *IdentType {
+	if st.ident == nil {
+		st.ident = &IdentType{
+			Ident: st.Type.GetDefinition(),
+			srcBase: srcBase{
+				pkg: st.pkg.LoadPackage(),
+				src: st.src,
+			},
+		}
+	}
+
+	return st.ident
 }
 
 // GetDefinition return the definition of this type

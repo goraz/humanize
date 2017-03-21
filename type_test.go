@@ -160,6 +160,7 @@ func TestType(t *testing.T) {
 			So(t.Type.(*SelectorType).pkg.Name, ShouldEqual, "onion")
 			So(t.Type.(*SelectorType).Type.(*IdentType).Ident, ShouldEqual, "Layer")
 			So(t.Type.GetDefinition(), ShouldEqual, "onion.Layer")
+			So(t.Type.(*SelectorType).IdentType().GetDefinition(), ShouldEqual, "Layer")
 		})
 
 		Convey("struct type", func() {
