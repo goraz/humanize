@@ -1,10 +1,10 @@
 language: go
 go:
-  - 1.1
-  - 1.2
-  - 1.3
   - 1.4
   - 1.5
+  - 1.6
+  - 1.7
+  - 1.8
   - tip
 before_install:
   - go get -v github.com/fzerorubigd/onion
@@ -14,8 +14,3 @@ before_install:
   - if ! go get code.google.com/p/go.tools/cmd/cover; then go get golang.org/x/tools/cmd/cover; fi
 script:
   - goveralls -v -service travis-ci -repotoken $COVERALLS_TOKEN || go test -v
-matrix:
-  allow_failures:
-    - go: 1.1
-    - go: 1.2
-    - go: 1.3
