@@ -10,7 +10,8 @@ var typ = `
 package test
 
 import (
-   "github.com/fzerorubigd/onion"
+	"net/http"
+	"github.com/fzerorubigd/onion"
 )
 
 type INT int
@@ -59,6 +60,32 @@ type EMPTYINTERFACE interface{}
 
 var on = onion.New()
 
+var xx = http.ConnState(10)
+
+`
+
+const wrongTypeCast = `
+package example
+
+var test = invalidFuncAndCast(10)
+`
+
+const wrongTypeCast2 = `
+package example
+
+import "net/http"
+
+var test = http.invalidFuncAndCast(10)
+`
+
+const validTypeCast = `
+package example
+
+type XX int
+
+var test = int64(1)
+
+var test2 = XX(2)
 `
 
 func TestType(t *testing.T) {
@@ -237,7 +264,45 @@ func TestType(t *testing.T) {
 			So(ok, ShouldBeTrue)
 			p2 := sel.Package()
 			So(p2.Path, ShouldEqual, "github.com/fzerorubigd/onion")
+
+			v, err := p.FindVariable("xx")
+			So(err, ShouldBeNil)
+			So(v.Type.GetDefinition(), ShouldEqual, "http.ConnState")
 		})
+
+	})
+
+	Convey("invalid type cast", t, func() {
+		p := &Package{}
+		f, err := ParseFile(wrongTypeCast, p)
+		So(err, ShouldBeNil)
+		p.Files = append(p.Files, f)
+		So(lateBind(p), ShouldNotBeNil)
+	})
+
+	Convey("invalid type cast 2", t, func() {
+		p := &Package{}
+		f, err := ParseFile(wrongTypeCast2, p)
+		So(err, ShouldBeNil)
+		p.Files = append(p.Files, f)
+		So(lateBind(p), ShouldNotBeNil)
+	})
+
+	Convey("valid type cast", t, func() {
+		p := &Package{}
+		f, err := ParseFile(validTypeCast, p)
+		So(err, ShouldBeNil)
+		p.Files = append(p.Files, f)
+		So(lateBind(p), ShouldBeNil)
+		v, err := p.FindVariable("test")
+		So(err, ShouldBeNil)
+		So(v.Name, ShouldEqual, "test")
+		So(v.Type.GetDefinition(), ShouldEqual, "int64")
+
+		v, err = p.FindVariable("test2")
+		So(err, ShouldBeNil)
+		So(v.Name, ShouldEqual, "test2")
+		So(v.Type.GetDefinition(), ShouldEqual, "XX")
 
 	})
 }

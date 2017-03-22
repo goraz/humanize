@@ -147,9 +147,12 @@ func checkTypeCast(p *Package, bi *Package, args []ast.Expr, name string) (Type,
 		return t.Type, nil
 	}
 
-	t, err = p.FindType(name)
+	// if the type is in this package, then simply pass an ident type
+	// not the actual type, since the actual type is the definition of
+	// the type
+	_, err = p.FindType(name)
 	if err == nil {
-		return t.Type, nil
+		return &IdentType{Ident: name, srcBase: srcBase{pkg: p}}, nil
 	}
 
 	return nil, fmt.Errorf("can not find the call for %s", name)

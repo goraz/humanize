@@ -331,15 +331,14 @@ func getSource(e ast.Expr, src string) string {
 	return res
 }
 
-func getImport(name string, f *File) *Import {
+func getImport(name string, f *File) (res *Import) {
 	for _, i := range f.Imports {
 		if i.Name == name {
-			return i
+			res = i
+			break
 		}
 	}
-
-	// error? invalid import
-	return nil
+	return
 }
 
 func getType(e ast.Expr, src string, f *File, p *Package) Type {

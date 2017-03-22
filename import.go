@@ -15,7 +15,9 @@ type Import struct {
 
 // LoadPackage is the function to load import package
 func (i Import) LoadPackage() *Package {
-	return getCache(i.Path)
+	// XXX : Watch this.
+	pkg, _ := ParsePackage(i.Path)
+	return pkg
 }
 
 // NewImport extract a new import entry
