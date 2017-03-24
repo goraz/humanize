@@ -8,5 +8,3 @@
 
 This is a simple "go source file into friendly structure" for prevent repeat my code over and over for create a simple 
 code generator. 
-
-

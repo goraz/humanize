@@ -294,6 +294,36 @@ func findMethods(p *Package) error {
 	return nil
 }
 
+func getGoFileContent(path, folder string, f os.FileInfo) (string, error) {
+	if f.IsDir() {
+		if path != folder {
+			return "", filepath.SkipDir
+		} else {
+			return "", nil
+		}
+	}
+	if filepath.Ext(path) != ".go" {
+		return "", nil
+	}
+	// ignore test files (for now?)
+	_, filename := filepath.Split(path)
+	if len(filename) > 8 && filename[len(filename)-8:] == "_test.go" {
+		return "", nil
+	}
+	r, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer r.Close()
+
+	data, err := ioutil.ReadAll(r)
+	if err != nil {
+		return "", err
+	}
+
+	return string(data), nil
+}
+
 // ParsePackage is here for loading a single package and parse all files in it
 func ParsePackage(path string) (*Package, error) {
 	if p := getCache(path); p != nil {
@@ -308,32 +338,10 @@ func ParsePackage(path string) (*Package, error) {
 	err = filepath.Walk(
 		folder,
 		func(path string, f os.FileInfo, err error) error {
-			if f.IsDir() {
-				if path != folder {
-					return filepath.SkipDir
-				} else {
-					return nil
-				}
-			}
-			if filepath.Ext(path) != ".go" {
-				return nil
-			}
-			// ignore test files (for now?)
-			_, filename := filepath.Split(path)
-			if len(filename) > 8 && filename[len(filename)-8:] == "_test.go" {
-				return nil
-			}
-			r, err := os.Open(path)
-			if err != nil {
+			data, err := getGoFileContent(path, folder, f)
+			if err != nil || data == "" {
 				return err
 			}
-			defer r.Close()
-
-			data, err := ioutil.ReadAll(r)
-			if err != nil {
-				return err
-			}
-
 			fl, err := ParseFile(string(data), p)
 			if err != nil {
 				return err
