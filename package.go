@@ -16,6 +16,8 @@ type Package struct {
 	Files []*File
 	Path  string
 	Name  string
+
+	resolved bool
 }
 
 var (
@@ -268,7 +270,11 @@ func lateBind(p *Package) (res error) {
 	return nil
 }
 
-func findMethods(p *Package) error {
+func findMethods(p *Package) {
+	if p.resolved {
+		return
+	}
+	p.resolved = true
 	for _, f := range p.Files {
 		for _, fn := range f.Functions {
 			if fn.Receiver != nil {
@@ -280,7 +286,7 @@ func findMethods(p *Package) error {
 				}
 				nt, err := p.FindType(t.GetDefinition())
 				if err != nil {
-					return err
+					continue
 				}
 				if pointer {
 					nt.StarMethods = append(nt.StarMethods, fn)
@@ -290,8 +296,6 @@ func findMethods(p *Package) error {
 			}
 		}
 	}
-
-	return nil
 }
 
 func getGoFileContent(path, folder string, f os.FileInfo) (string, error) {
@@ -362,10 +366,7 @@ func ParsePackage(path string) (*Package, error) {
 		return nil, err
 	}
 
-	err = findMethods(p)
-	if err != nil {
-		return nil, err
-	}
+	findMethods(p)
 	return p, nil
 }
 

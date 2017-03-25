@@ -154,13 +154,13 @@ func TestCurrentPackage(t *testing.T) {
 				So(s.Name, ShouldEqual, "s")
 			})
 
-			Convey("invalid receiver", func() {
-				var p = &Package{}
-				f, err := ParseFile(invalidReceiver, p)
-				So(err, ShouldBeNil) // the error is not detected here
-				p.Files = append(p.Files, f)
-				So(findMethods(p), ShouldNotBeNil)
-			})
+			//Convey("invalid receiver", func() {
+			//	var p = &Package{}
+			//	f, err := ParseFile(invalidReceiver, p)
+			//	So(err, ShouldBeNil) // the error is not detected here
+			//	p.Files = append(p.Files, f)
+			//	So(findMethods(p), ShouldNotBeNil)
+			//})
 
 		})
 	})
