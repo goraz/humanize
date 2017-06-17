@@ -23,6 +23,7 @@ type Package struct {
 var (
 	packageCache = make(map[string]*Package)
 	lock         = sync.RWMutex{}
+	vendor       []string
 )
 
 func setCache(path string, p *Package) {
@@ -115,28 +116,23 @@ func translateToFullPath(path string) (string, error) {
 		r    os.FileInfo
 		err  error
 	)
+
+	for i := range vendor {
+		test = filepath.Join(vendor[i], path)
+		r, err = os.Stat(test)
+		if err == nil && r.IsDir() {
+			return test, nil
+		}
+	}
+
 	for i := range gopath {
 		test = filepath.Join(gopath[i], "src", path)
 		r, err = os.Stat(test)
-		if err == nil {
-			break
-		}
-		// some hacky way to handle vendoring
-		test = filepath.Join(gopath[i], "src/vendor", path)
-		r, err = os.Stat(test)
-		if err == nil {
-			break
+		if err == nil && r.IsDir() {
+			return test, nil
 		}
 	}
-	if err != nil {
-		return "", fmt.Errorf("%s is not found in GOROOT or GOPATH", path)
-	}
-
-	if !r.IsDir() {
-		return "", fmt.Errorf("%s is found in %s but its not a directory", path, r.Name())
-	}
-
-	return test, nil
+	return "", fmt.Errorf("%s is not found in GOROOT or GOPATH", path)
 }
 
 func checkTypeCast(p *Package, bi *Package, args []ast.Expr, name string) (Type, error) {
@@ -339,6 +335,23 @@ func ParsePackage(path string) (*Package, error) {
 	if err != nil {
 		return nil, err
 	}
+	gopath := strings.Split(os.Getenv("GOPATH"), ":")
+bigLoop:
+	for {
+		// this is not correct, I need to rewrite the entire package :/
+		vendor = append(vendor, filepath.Join(folder, "vendor"))
+		for i := range gopath {
+			if gopath[i] == folder {
+				break bigLoop
+			}
+		}
+		if folder == "" || folder == "/" {
+			break
+		}
+
+		folder = filepath.Dir(folder)
+	}
+
 	err = filepath.Walk(
 		folder,
 		func(path string, f os.FileInfo, err error) error {
