@@ -336,20 +336,21 @@ func ParsePackage(path string) (*Package, error) {
 		return nil, err
 	}
 	gopath := strings.Split(os.Getenv("GOPATH"), ":")
+	tmp := folder
 bigLoop:
 	for {
 		// this is not correct, I need to rewrite the entire package :/
-		vendor = append(vendor, filepath.Join(folder, "vendor"))
+		vendor = append(vendor, filepath.Join(tmp, "vendor"))
 		for i := range gopath {
-			if gopath[i] == folder {
+			if gopath[i] == tmp {
 				break bigLoop
 			}
 		}
-		if folder == "" || folder == "/" {
+		if tmp == "" || tmp == "/" {
 			break
 		}
 
-		folder = filepath.Dir(folder)
+		tmp = filepath.Dir(tmp)
 	}
 
 	err = filepath.Walk(
