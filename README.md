@@ -8,3 +8,6 @@
 
 This is a simple "go source file into friendly structure" for prevent repeat my code over and over for create a simple 
 code generator. 
+
+This code is not maintained anymore. I'm working on a new version of this, with better (almost better :)) structure. 
+you can find the new code at https://github.com/fzerorubigd/humanize
